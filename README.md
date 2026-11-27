@@ -1,6 +1,8 @@
 # ExamSage V2
 
-ExamSage helps you connect an exam question to the lecture that explains it. Import your lectures, past papers and answer keys into the Windows app, ask about a specific question, and open the original page behind each cited point. Save the page to test yourself on the same material tomorrow.
+ExamSage V2 is a Windows study app for students revising with their own past papers, lecture notes and answer keys. Ask a question about your course, follow up in the same conversation and open the original page behind each cited point. Answers use the Codex allowance included in your ChatGPT plan.
+
+Say a marking scheme gives the answer to question 2(b), but you are unsure why the method works. Ask ExamSage to find the assumption in the question and the lecture passage that explains it. Read both pages in context, then save the one you want to practise recalling tomorrow.
 
 **[Download the Windows student kit](https://raw.githubusercontent.com/LucasGuoyl/ExamSageV2/main/examsage-v2/releases/windows-study-pilot/ExamSage-Study-Windows.zip)** · [Step-by-step student guide](README.en.md) · [Build and test from source](examsage-v2/README.md)
 
