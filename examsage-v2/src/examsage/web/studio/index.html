@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>押题宝 · 学习空间</title><link rel="icon" href="data:,"><link rel="stylesheet" href="/vendor/katex/katex.min.css"><link rel="stylesheet" href="/studio.css">
+<script defer src="/vendor/katex/katex.min.js"></script><script defer src="/vendor/katex/contrib/auto-render.min.js"></script><script defer src="/studio.js"></script></head>
+<body><div id="app">
+<aside class="sidebar" aria-label="学习导航" id="sidebar">
+<div class="brand"><span class="brand-icon" aria-hidden="true"><i></i><i></i><i></i></span><span>押题宝<small>ExamSage</small></span><button class="icon mobile-close" data-icon="close" id="closeNav" aria-label="关闭导航"></button></div>
+<button class="new-chat" id="newChat" disabled><span data-icon="compose"></span>新对话<span class="plus">＋</span></button>
+<div class="nav-group"><label for="courses">我的课程</label><div class="course-field"><span data-icon="book"></span><select id="courses" aria-label="选择课程"><option>正在读取…</option></select><span data-icon="chevron"></span></div>
+<button class="nav-action" id="addCourse"><span data-icon="upload"></span>导入课件</button><button class="nav-action" id="sample"><span data-icon="book"></span>打开弹簧示例</button></div>
+<button class="nav-action review-nav" id="openReview" disabled><span data-icon="bookmark"></span>本课复习</button>
+<div class="history"><h2>对话记录</h2><nav id="sessions" aria-label="对话记录"></nav></div>
+<div class="profile"><span class="local-icon" data-icon="desktop"></span><div>本机学习空间<small>私人课程与对话</small></div></div>
+</aside><button id="navShade" class="shade" aria-label="收起导航" hidden></button>
+<main><header class="top"><div class="crumb"><button class="icon menu" id="menu" data-icon="menu" aria-label="打开学习导航"></button><span data-icon="stack"></span><span>学习空间</span><b>/</b><strong id="courseName">课程问答</strong></div><button id="toggleReader" class="tool" aria-expanded="true"><span data-icon="panel"></span>出处对照</button></header>
+<div class="conversation" id="conversation" tabindex="-1"><div class="flow" id="flow"></div></div>
+<div class="compose-wrap"><div id="notice" role="status" aria-live="polite" hidden></div><form id="composer"><label class="sr" for="question">课程问题</label><textarea rows="1" id="question" placeholder="问一个课程问题…" disabled></textarea><div class="compose-row"><button id="attach" type="button" class="icon" aria-label="导入课件" title="导入课件" data-icon="attach"></button><span id="shortcut">Ctrl + Enter 发送</span><button class="send" id="send" aria-label="发送问题" title="发送问题" disabled data-icon="up"></button></div></form></div>
+</main>
+<aside class="reader" id="reader" aria-label="出处对照"><header><div><span data-icon="panel"></span>出处对照</div><button class="icon" data-icon="close" id="closeReader" aria-label="关闭出处对照"></button></header>
+<div class="reader-scroll" id="readerBody" tabindex="-1"></div><div class="reader-foot" id="readerFoot" hidden><button id="prev" class="icon" aria-label="上一页" data-icon="left"></button><span id="pageCount"></span><button id="next" class="icon" aria-label="下一页" data-icon="right"></button></div></aside>
+</div>
+<dialog id="reviewDialog" aria-labelledby="reviewTitle">
+<header class="review-header"><div><p id="reviewCourse"></p><h2 id="reviewTitle">本课复习</h2></div><button id="closeReview" class="icon" aria-label="关闭复习" data-icon="close"></button></header>
+<div id="reviewBody"></div><p class="review-feedback" id="reviewFeedback" role="status" hidden></p>
+</dialog>
+<dialog id="importDialog"><form id="importForm"><div class="dialog-head"><h2>导入课程资料</h2><button type="button" id="cancelImport" class="icon" data-icon="close" aria-label="关闭导入"></button></div>
+<label>课程名称<input id="importName" required maxlength="200" placeholder="例如，地球动力学"></label><label>学科<input id="subject" required maxlength="200" placeholder="例如，地球物理"></label>
+<label>选择资料<input id="files" type="file" multiple required accept=".pdf,.pptx,.txt,.md"></label><div id="fileRoles"></div><p id="importError" role="alert"></p><button class="primary" id="confirmImport">导入并开始学习</button></form></dialog>
+</body></html>

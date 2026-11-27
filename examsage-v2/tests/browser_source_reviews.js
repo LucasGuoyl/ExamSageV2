@@ -1,0 +1,37 @@
+async (page) => {
+  const checks=[],errors=[];
+  const check=(name,pass)=>checks.push({name,passed:Boolean(pass)});
+  const onError=e=>errors.push(String(e));page.on('pageerror',onError);
+  const open=async(index)=>{await page.locator('#items button').nth(index).click();await page.locator('#results .refs button').first().click();};
+  await open(1);
+  const original=await page.locator('#source-text').textContent();
+  check('form is available on the original page',await page.locator('#review-form').isVisible());
+  check('empty export disabled',await page.locator('#export-reviews').isDisabled());
+  await page.locator('#add-review').click();
+  check('blank summary rejected',(await page.locator('#review-status').textContent()).includes('请填写'));
+  const annotation='原文数值待核查：第1页 v≈800 m/yr；第2页 U/v=0.0086，却写 U=8.6 m/yr。按所列比例复算 U=6.88 m/yr，两年13.76 m（约14 m）；若取8.6，则两年17.2 m。这里只核对算术，尚未核验物理模型和全部单位，保留原文。';
+  await page.locator('#review-summary').fill(annotation);
+  await page.locator('#review-evidence input[data-document="doc_6e1caab429e58ebc1d17dad5"][data-page="1"]').check();
+  await page.locator('#add-review').click();
+  check('pending is not represented as saved',(await page.locator('#review-status').textContent()).includes('待保存 1 条')&&await page.locator('#source-reviews .saved-review').count()===0);
+  check('raw source not rewritten',await page.locator('#source-text').textContent()===original);
+  await open(0);
+  check('pending survives page navigation',(await page.locator('#review-status').textContent()).includes('待保存 1 条'));
+  await page.locator('#review-summary').fill(annotation);
+  await page.locator('#review-evidence input[data-document="doc_6e1caab429e58ebc1d17dad5"][data-page="2"]').check();
+  await page.locator('#add-review').click();
+  check('second target queued',(await page.locator('#review-status').textContent()).includes('待保存 2 条'));
+  const downloadPromise=page.waitForEvent('download');
+  await page.locator('#export-reviews').click();
+  const download=await downloadPromise;
+  await download.saveAs('./data/qa/plugin-20261116/round24-reviews/browser-request.json');
+  check('JSON request downloaded',download.suggestedFilename()==='grt-raw-pilot-source-reviews.json');
+  check('download does not claim course save',(await page.locator('#review-status').textContent()).includes('尚未写入课程'));
+  await page.setViewportSize({width:390,height:844});
+  check('mobile no horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.setViewportSize({width:1360,height:950});
+  await page.locator('#clear-reviews').click();
+  check('clear pending works',await page.locator('#export-reviews').isDisabled());
+  check('no runtime errors',errors.length===0);page.off('pageerror',onError);
+  return {mode:'generated_html_replay_not_live_server',total:checks.length,passed:checks.filter(c=>c.passed).length,checks,errors};
+}

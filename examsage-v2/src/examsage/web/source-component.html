@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>课程引用原页</title>
+<style>
+:root{color-scheme:light dark;--paper:#fcfbf8;--ink:#20332f;--line:#ccd7ce;--accent:#146054;--soft:#f0f4ef;color:var(--ink);background:var(--paper);font:15px/1.6 Inter,"Microsoft YaHei",sans-serif}
+@media(prefers-color-scheme:dark){:root{--paper:#192321;--ink:#e5eee7;--line:#405750;--accent:#9bdbc7;--soft:#263632}}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0}main{padding:14px 16px;max-width:100%;overflow-wrap:anywhere}
+header{display:flex;gap:8px 14px;align-items:baseline;justify-content:space-between;flex-wrap:wrap}h1{font-size:1.07rem;line-height:1.35;margin:0;font-weight:650;min-width:0}#page{font-size:.88rem;white-space:nowrap;color:var(--accent)}
+#notice{margin:0}#body:not([hidden]){padding-top:.65rem}pre{margin:.5rem 0;max-height:380px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}
+#viewport{overflow:auto;background:var(--soft);border:1px solid var(--line)}img{display:block;margin:auto;width:auto;height:auto;max-width:100%;max-height:480px}
+#viewport.large{max-height:480px}#viewport.large img{width:180%;max-width:none;max-height:none}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin:.7rem 0}button{appearance:none;line-height:1.4;background:var(--soft);color:var(--accent);font:inherit;padding:5px 12px;border:1px solid var(--line);border-radius:6px;cursor:pointer}button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}details{border-top:1px solid var(--line);margin-top:.7rem;padding-top:.5rem}summary{cursor:pointer}code{font-size:.79rem;overflow-wrap:anywhere}ul{margin:.3rem 0;padding-left:1.25rem}
+</style>
+<main id="card">
+  <header><h1 id="file">课程引用原页</h1><span id="page"></span></header>
+  <p id="notice" role="status">正在等候对话中的原页。</p>
+  <section id="body" hidden>
+    <pre id="original" hidden></pre>
+    <div id="viewport" hidden><img id="picture" alt=""></div>
+    <nav aria-label="原页操作"><button id="switch" hidden></button><button id="zoom" aria-pressed="false" hidden>放大原图</button></nav>
+    <details id="citation"><summary>来源与核查说明</summary><code id="source"></code><ul id="warnings"></ul></details>
+  </section>
+</main>
+<script>
+'use strict';
+const el=id=>document.getElementById(id);
+const protocol='2026-01-26',initId=1;
+let connected=false,closed=false,origin=null,canCall=false,current=null,expectedInput=null;
+let waitingForHostResult=true;
+let epoch=0,sequence=initId,pending=null,observer=null;
+const send=message=>window.parent.postMessage({jsonrpc:'2.0',...message},origin&&origin!=='null'?origin:'*');
+
+function clearView(message){
+  epoch++;
+  current=null;
+  if(pending){clearTimeout(pending.timer);pending=null;}
+  el('file').textContent='课程引用原页';el('page').textContent='';
+  el('original').textContent='';el('original').hidden=true;
+  el('picture').onerror=null;el('picture').removeAttribute('src');el('picture').alt='';
+  el('viewport').hidden=true;el('viewport').classList.remove('large');
+  el('zoom').hidden=true;el('zoom').setAttribute('aria-pressed','false');el('zoom').textContent='放大原图';
+  el('switch').hidden=true;el('source').textContent='';el('warnings').replaceChildren();
+  el('citation').open=false;el('body').hidden=true;el('notice').textContent=message;
+}
+
+function sourceOf(data){
+  const row=data?.records?.[0],source=data?.sources?.[0],ref=source?.refs?.[0];
+  if(!row||row.kind!=='block'||source?.refs?.length!==1||row.refs?.length!==1||
+     !ref?.filename||!Number.isInteger(ref.page)||ref.page<1||!data.course_id||!data.snapshot||
+     row.refs[0].document_id!==ref.document_id||row.refs[0].page!==ref.page||
+     row.id!==ref.document_id+':p'+ref.page||source.record_id!==row.id||
+     !/^src_[a-f0-9]{64}$/.test(source.source_id)||row.source_id!==source.source_id)return null;
+  return {course:data.course_id,document:ref.document_id,page:ref.page,snapshot:data.snapshot,
+          id:source.source_id,filename:ref.filename,sha:ref.sha256};
+}
+const samePage=(a,b)=>a.course===b.course&&a.document===b.document&&a.page===b.page;
+const reasons={png_size_limit:'本页超过对话原图大小上限，可在课程阅读器下载。',unsupported_source_format:'此文件以文字提供。',
+               source_page_unavailable:'当前课程范围内没有此页。'};
+
+async function showResult(result,requested=null){
+  clearView('正在核对原页。');
+  const token=epoch,data=result?.structuredContent,source=sourceOf(data);
+  if(!source||result.isError){el('notice').textContent='未取得可核对的原页。请在对话中重新查证。';return;}
+  if(requested&&(!samePage(source,requested)||(requested.id&&
+      (source.id!==requested.id||source.snapshot!==requested.snapshot)))){
+    el('notice').textContent='来源已变化，请在对话中重新打开原页。';return;
+  }
+  const image=data.image,row=data.records[0];
+  current={...source,isImage:Boolean(image)};
+  el('file').textContent=source.filename;el('page').textContent='物理第 '+source.page+' 页';
+  el('source').textContent=source.id;el('body').hidden=false;
+  const warnings=(Array.isArray(data.limitations)?data.limitations:[]).filter(v=>typeof v==='string');
+  for(const warning of warnings){const li=document.createElement('li');li.textContent=warning;el('warnings').append(li);}
+  if(canCall&&(image||/\.(pdf|pptx)$/i.test(source.filename))){
+    el('switch').textContent=image?'查看提取文字':'查看本页原图';el('switch').hidden=false;
+  }
+  if(!image){
+    const field=result._meta?.['examsage/originalTextField'];
+    const raw=field==='raw_text'?row.details?.raw_text:field==='text'?row.text:null;
+    if(typeof raw!=='string'||!raw.trim()){
+      el('notice').textContent='此页没有可核对的提取文字。';return;
+    }
+    const normalized=raw.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g,
+      ch=>'〔U+'+ch.charCodeAt(0).toString(16).toUpperCase().padStart(4,'0')+'〕');
+    el('original').textContent=normalized;el('original').hidden=false;
+    el('notice').textContent=normalized!==raw?'提取文字含不可显示字符，已就地标记。':
+       row.details?.extraction_status==='partial'?'此页仅部分提取，请核对原图。':'原页提取文字';
+    return;
+  }
+  if(!image.available){el('notice').textContent=reasons[image.reason]||'此页暂时无法取得完整原图。';return;}
+  try{
+    const block=result.content?.find(item=>item.type==='image'&&item.mimeType==='image/png');
+    if(image.source_id!==source.id||image.page!==source.page||image.source_sha256!==source.sha||
+       !block||typeof block.data!=='string'||block.data.length>2796204)throw Error();
+    const bytes=Uint8Array.from(atob(block.data),c=>c.charCodeAt(0));
+    const hash=await crypto.subtle.digest('SHA-256',bytes);
+    const actual=Array.from(new Uint8Array(hash),n=>n.toString(16).padStart(2,'0')).join('');
+    if(actual!==image.png_sha256)throw Error();
+    if(token!==epoch)return;
+    el('picture').onerror=()=>{if(token===epoch){el('viewport').hidden=true;el('zoom').hidden=true;el('notice').textContent='浏览器无法显示此页 PNG。';}};
+    el('picture').alt=source.filename+'，物理第 '+source.page+' 页';
+    el('picture').src='data:image/png;base64,'+block.data;
+    el('viewport').hidden=false;el('zoom').hidden=false;el('notice').textContent='';
+  }catch{
+    if(token===epoch)el('notice').textContent='原图未通过来源校验，未显示。';
+  }
+}
+
+el('zoom').onclick=()=>{
+  const large=el('viewport').classList.toggle('large');
+  el('zoom').setAttribute('aria-pressed',String(large));el('zoom').textContent=large?'还原大小':'放大原图';
+};
+el('switch').onclick=()=>{
+  if(!current||!canCall)return;
+  const previous=current,name=previous.isImage?'get_source_page':'get_source_image';
+  clearView('正在重新查证本页。');
+  const id=++sequence;
+  pending={id,previous,timer:setTimeout(()=>{if(pending?.id===id)clearView('原页请求超时，请在对话中重试。');},20000)};
+  send({id,method:'tools/call',params:{name,arguments:{course_id:previous.course,document_id:previous.document,page:previous.page}}});
+};
+
+window.addEventListener('message',event=>{
+  if(closed||event.source!==window.parent||(connected&&event.origin!==origin))return;
+  const msg=event.data;
+  if(!msg||msg.jsonrpc!=='2.0')return;
+  if(!connected){
+    if(msg.id!==initId||msg.method)return;
+    if(msg.result?.protocolVersion!==protocol){clearView('宿主未能建立原页视图。');return;}
+    connected=true;origin=event.origin;canCall=Boolean(msg.result.hostCapabilities?.serverTools);
+    send({method:'ui/notifications/initialized',params:{}});
+    if(window.ResizeObserver){
+      let lastHeight=-1;
+      observer=new ResizeObserver(()=>{const height=Math.ceil(el('card').getBoundingClientRect().height);
+        if(height!==lastHeight&&!closed){lastHeight=height;send({method:'ui/notifications/size-changed',params:{height}});}});
+      observer.observe(el('card'));
+    }
+    return;
+  }
+  if(msg.method==='ui/resource-teardown'){
+    closed=true;observer?.disconnect();clearView('原页已关闭。');
+    if(msg.id!==undefined)send({id:msg.id,result:{}});return;
+  }
+  if(msg.method==='ui/notifications/tool-input'){
+    const args=msg.params?.arguments;
+    expectedInput=args?{course:args.course_id,document:args.document_id,page:args.page}:null;
+    waitingForHostResult=true;
+    clearView('正在查证原页。');return;
+  }
+  if(msg.method==='ui/notifications/tool-cancelled'){
+    if(!waitingForHostResult)return;
+    waitingForHostResult=false;expectedInput=null;clearView('本次查证已取消。');return;
+  }
+  if(msg.method==='ui/notifications/tool-result'){
+    if(!waitingForHostResult)return;
+    const incoming=sourceOf(msg.params?.structuredContent);
+    if(expectedInput&&incoming&&!samePage(incoming,expectedInput))return;
+    waitingForHostResult=false;
+    void showResult(msg.params,expectedInput);return;
+  }
+  if(!msg.method&&pending&&msg.id===pending.id){const requested=pending.previous;void showResult(msg.result,requested);}
+});
+if(window.parent!==window){
+  send({id:initId,method:'ui/initialize',params:{appInfo:{name:'ExamSage Source Page',version:'1.0.0'},
+      appCapabilities:{},protocolVersion:protocol}});
+}else{clearView('在支持 MCP Apps 的对话中打开课程原页。');}
+</script>
+</html>

@@ -1,0 +1,121 @@
+{
+  "workspace": "cross-discipline-demo",
+  "profile": {
+    "course_id": "demo-history",
+    "curriculum_system": "demonstration",
+    "institution": null,
+    "stage": "演示：非认证课程",
+    "language": "zh/en",
+    "syllabus_version": "2026-demo-v1",
+    "disciplines": [
+      "history"
+    ],
+    "material_status": "demonstration",
+    "outcomes": [
+      {
+        "id": "reason-with-sources",
+        "description": "区分原文、条件、推理与证据不足。",
+        "refs": [
+          {
+            "document_id": "declaration",
+            "page": 1
+          },
+          {
+            "document_id": "lesson",
+            "page": 2
+          }
+        ],
+        "record_ids": [
+          "focus"
+        ]
+      }
+    ]
+  },
+  "manifest": {
+    "course_key": "demo-history",
+    "course_name": "演示 / 历史：区分史料主张与社会事实",
+    "documents": [
+      {
+        "id": "declaration",
+        "relative_path": "declaration-excerpt.txt",
+        "sha256": "56eeee1466d55a4af9f8c66b5b49ba64e4228328316366cde8f3095e21566b18",
+        "kind": "primary_source",
+        "pages": 1
+      },
+      {
+        "id": "lesson",
+        "relative_path": "lesson.txt",
+        "sha256": "d97ec3c12c57a06f305865f0573ef3776c8daa75807c880771271ce38bae5700",
+        "kind": "lecture",
+        "pages": 2
+      }
+    ]
+  },
+  "records": [
+    {
+      "id": "focus",
+      "kind": "claim",
+      "title": "equal：原文中的平等主张",
+      "text": "原文说 all men are created equal；这里标注的是文献主张，而不是对1776年社会实践的证实。",
+      "refs": [
+        {
+          "document_id": "declaration",
+          "page": 1
+        },
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "details": {
+        "academic": {
+          "nature": "author_claim",
+          "evidence_record_ids": [
+            "quote"
+          ]
+        }
+      },
+      "limitations": [
+        "文献中的平等主张不等于已证明当时社会实践平等；需要其他来源。"
+      ]
+    },
+    {
+      "id": "quote",
+      "kind": "block",
+      "title": "原文节选：equal",
+      "text": "We hold these truths to be self-evident, that all men are created equal,",
+      "refs": [
+        {
+          "document_id": "declaration",
+          "page": 1
+        }
+      ]
+    },
+    {
+      "id": "q",
+      "kind": "question",
+      "title": "演示讨论/计算题",
+      "text": "只使用给定《独立宣言》节选；明确资料的目的与证明范围。",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 1
+        }
+      ]
+    },
+    {
+      "id": "q-a",
+      "kind": "question",
+      "title": "小问 a",
+      "text": "能否据此断言所有人实际享有平等待遇？说明还缺什么证据。",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "parent_id": "q"
+    }
+  ],
+  "relations": []
+}

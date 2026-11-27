@@ -1,0 +1,10 @@
+interface:
+  display_name: "押题宝课程学习"
+  short_description: "根据授权课程资料查证讲解与练习，保留原文来源、题目条件和证据不足提示。"
+  default_prompt: "使用 $course-study 列出我能学习的课程，再根据课件解答我的问题并标出来源。"
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "examsage"
+      description: "押题宝只读课程证据工具"
+      transport: "stdio"

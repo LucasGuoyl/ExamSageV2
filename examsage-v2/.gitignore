@@ -1,0 +1,11 @@
+__pycache__/
+.pytest_cache/
+.venv/
+*.egg-info/
+data/
+.env
+
+# Local course material and student workspaces
+/courses/
+/evaluation/
+*.sqlite3*

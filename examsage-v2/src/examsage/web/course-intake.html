@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
+<title>导入课件 · 押题宝</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f7f2;color:#183a34;font:16px/1.55 system-ui,'Microsoft YaHei',sans-serif}main{max-width:44rem;margin:2rem auto;padding:0 1.2rem}a{color:#195e4a}h1{margin:.8rem 0}form,section{padding:1.3rem;margin:1rem 0;background:white;border:1px solid #cddad2;border-radius:12px}label{display:block;font-weight:600;margin:.65rem 0 .3rem}input{width:100%;font:inherit;padding:.65rem;border:1px solid #869e93;border-radius:6px;color:inherit}button{font:inherit;padding:.55rem .9rem;cursor:pointer;border:1px solid #abc1b6;background:white;color:#254c40;border-radius:6px}button[type=submit]{background:#185940;color:white;margin-top:1rem}button:disabled{opacity:.55}ul{padding:0;list-style:none}li{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.45rem 0;overflow-wrap:anywhere}li button{flex:none}p{margin:.5rem 0}small{color:#53675d}section a{display:inline-block;margin:.3rem 1rem .3rem 0}#status{overflow-wrap:anywhere}
+[hidden]{display:none!important}.material-controls{display:flex;gap:.6rem;flex-wrap:wrap}.material-controls label{font-size:.85rem;margin:0}.material-controls select,.material-controls input{display:block;font:inherit;width:auto;max-width:100%;padding:.35rem}.material-controls input{width:6rem}#selection li{flex-wrap:wrap;border-bottom:1px solid #dce5df}#selection li>span{flex:1 1 9rem;min-width:0}
+#curriculum{margin:1rem 0}#curriculum summary{cursor:pointer;color:#195e4a}#curriculum[open]{padding-bottom:.65rem}
+</style></head><body><main><a href="/">返回课程</a><h1>导入课件</h1>
+<p>选择本机课程资料，导入后可以核对原页并向课程助手提问。</p>
+<form id="intake"><label for="name">课程名称</label><input id="name" required maxlength="200" placeholder="例如：地球动力学">
+<label for="discipline">学科</label><input id="discipline" required maxlength="200" placeholder="例如：地球物理">
+<details id="curriculum"><summary>课程体系与版本（选填）</summary>
+<label for="curriculum_system">课程体系</label><input id="curriculum_system" name="curriculum_system" maxlength="200" placeholder="例如 IB Diploma Programme">
+<label for="institution">学校或机构</label><input id="institution" name="institution" maxlength="200">
+<label for="stage">学段</label><input id="stage" name="stage" maxlength="200" placeholder="例如 高中或本科二年级">
+<label for="syllabus_version">大纲版本</label><input id="syllabus_version" name="syllabus_version" maxlength="200" placeholder="可填大纲编号或修订年份">
+<label for="language">授课语言</label><input id="language" name="language" maxlength="200" placeholder="可填多种语言">
+</details>
+<label for="files">课程文件</label><input id="files" type="file" multiple accept=".pdf,.pptx,.txt,.md">
+<small>可分次选择 PDF、PPTX、TXT 或 MD。本次最多 24 份，上传总量限 64 MiB。</small>
+<p><small>如需分析往卷，可将原卷标为“正式试卷”并填考年。讲义和答案可另外标注。</small></p>
+<ul id="selection" aria-label="已选文件"></ul><button id="submit" type="submit">导入课程</button></form>
+<p id="status" role="status"></p><section id="result" hidden><h2 id="result-title"></h2><p id="counts"></p>
+<a id="reader">核查原页与提取状态</a><a id="study">进入课程对话</a></section></main><script src="/static/course-intake.js"></script></body></html>

@@ -1,0 +1,148 @@
+{
+  "workspace": "cross-discipline-demo",
+  "profile": {
+    "course_id": "demo-mathematics",
+    "curriculum_system": "demonstration",
+    "institution": null,
+    "stage": "演示：非认证课程",
+    "language": "zh/en",
+    "syllabus_version": "2026-demo-v1",
+    "disciplines": [
+      "mathematics"
+    ],
+    "material_status": "demonstration",
+    "outcomes": [
+      {
+        "id": "reason-with-sources",
+        "description": "区分原文、条件、推理与证据不足。",
+        "refs": [
+          {
+            "document_id": "lesson",
+            "page": 1
+          },
+          {
+            "document_id": "lesson",
+            "page": 2
+          }
+        ],
+        "record_ids": [
+          "focus"
+        ]
+      }
+    ]
+  },
+  "manifest": {
+    "course_key": "demo-mathematics",
+    "course_name": "演示 / 数学：归纳法",
+    "documents": [
+      {
+        "id": "lesson",
+        "relative_path": "lesson.txt",
+        "sha256": "fa6e5a2a2134963690b993ff2dbdbd130badbb440d8abe04bcec383598425310",
+        "kind": "lecture",
+        "pages": 2
+      }
+    ]
+  },
+  "records": [
+    {
+      "id": "focus",
+      "kind": "proof",
+      "title": "Induction sum 正整数求和证明",
+      "text": "Induction sum：基例与归纳步共同证明正整数有限求和公式。",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 1
+        },
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "details": {
+        "academic": {
+          "nature": "derivation",
+          "assumptions": [
+            "n 是正整数"
+          ],
+          "steps": [
+            {
+              "text": "n=1 时 S_1=1=1(1+1)/2；假设 S_k=k(k+1)/2。",
+              "refs": [
+                {
+                  "document_id": "lesson",
+                  "page": 1
+                }
+              ]
+            },
+            {
+              "text": "S_(k+1)=k(k+1)/2+(k+1)=(k+1)(k+2)/2。",
+              "refs": [
+                {
+                  "document_id": "lesson",
+                  "page": 2
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "q",
+      "kind": "question",
+      "title": "演示讨论/计算题",
+      "text": "原创教学演示，非大学真题。\nInduction sum：证明对正整数 n，S_n=1+2+...+n=n(n+1)/2。基例 n=1，两边都是1。假设对某个 k>=1 成立。",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 1
+        }
+      ]
+    },
+    {
+      "id": "q-a",
+      "kind": "question",
+      "title": "小问 a",
+      "text": "计算 n=10 的有限和，并说明证明为何需要正整数条件。",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "parent_id": "q"
+    },
+    {
+      "id": "a-a",
+      "kind": "answer",
+      "title": "原创练习参考解答（非官方）",
+      "text": "S_10=55。归纳法的基例和后继步骤覆盖正整数；未证明实数项数的有限和。",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "limitations": [
+        "开发演示参考解答，独立专家验收待完成。"
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "id": "pair-a",
+      "kind": "has_answer",
+      "source": "q-a",
+      "target": "a-a",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "origin": "explicit"
+    }
+  ]
+}

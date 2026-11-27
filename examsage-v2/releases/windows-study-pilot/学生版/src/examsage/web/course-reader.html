@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>押题宝 · 课程证据阅读器</title>
+<style>
+:root{color-scheme:light;--ink:#193d38;--muted:#536e69;--bg:#f4f6f2;--accent:#25674f;--line:#cedbd3}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 system-ui,"Microsoft YaHei",sans-serif}header{padding:24px max(24px,calc((100vw - 1280px)/2));background:#fff;border-bottom:1px solid var(--line)}h1{margin:0;font-size:28px}header p{margin:4px 0;color:var(--muted)}.badge{font-size:12px;color:#80521a}main{max-width:1280px;margin:auto;padding:24px;display:grid;grid-template-columns:310px 1fr;gap:28px}label{display:block;font-size:14px;margin-bottom:16px}select,input{width:100%;padding:10px;border:1px solid var(--line);border-radius:6px;background:#fff;font:inherit;color:var(--ink)}button{font:inherit;cursor:pointer;color:var(--accent);border:1px solid var(--line);border-radius:6px;background:#fff;padding:7px 10px}button:hover,button[aria-pressed=true]{background:#dcebdd}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #8eac30;outline-offset:2px}#items{display:grid;gap:8px}#items button{text-align:left;font-size:14px}article{background:#fff;padding:22px;border:1px solid var(--line);border-radius:10px;margin-bottom:16px;overflow-wrap:anywhere}h2{font-size:22px;margin:0 0 12px}h3{margin:0 0 8px;font-size:18px}.body,.page-text{white-space:pre-wrap;overflow-wrap:anywhere}.meta{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.warning{color:#80521a;font-size:14px}.refs{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.refs button{font-size:13px}#source{background:#edf3ed;border-left:4px solid var(--accent);padding:20px;margin-top:20px}#source[hidden]{display:none}#profile{font-size:13px;color:var(--muted);margin-bottom:18px}#results:focus{outline:none}@media(max-width:760px){main{grid-template-columns:1fr;padding:16px;gap:18px}header{padding:18px}#items{max-height:220px;overflow:auto}h1{font-size:24px}}
+</style></head><body>
+<style>main>*{min-width:0}button{max-width:100%;overflow-wrap:anywhere}select{min-width:0}#source{overflow-wrap:anywhere}.review-option>span{min-width:0}</style>
+<style>textarea{width:100%;min-height:100px;padding:10px;font:inherit;border:1px solid var(--line);border-radius:6px}.saved-review{border-left:3px solid #a67930;padding:12px;margin:12px 0;background:#fff9ed}.review-option{display:flex;align-items:start;gap:8px;margin:6px 0}.review-option input{width:auto;margin-top:7px}#review-evidence{max-height:180px;overflow:auto}#review-form{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}button:disabled{opacity:.5;cursor:default}</style>
+<header><div class="badge">本机阅读候选 · 无模型调用</div><h1>押题宝 · 课程证据阅读器</h1><p>查看原文、推导、小问条件与不同解释。课程材料的学术核查仍待完成。</p></header>
+<main><aside><label>课程<select id="course" aria-label="选择课程"></select></label><label>筛选标题<input id="filter" type="search" placeholder="例如：窗、归纳、equal" aria-label="筛选标题"></label><div id="profile"></div><button id="review" type="button" hidden>查看导入审核</button><nav id="items" aria-label="课程证据"></nav></aside>
+<section aria-label="证据与原页"><div id="results" tabindex="-1" aria-live="polite"></div><section id="source" hidden aria-label="来源原页"><button id="close-source" type="button">关闭原页</button><h2 id="source-title"></h2><div id="source-meta" class="meta"></div><div id="source-text" class="page-text"></div><div id="source-reviews"></div><section id="review-form" hidden aria-label="添加学习注记"><h3>添加学习注记</h3><p class="warning">注记与原文分开保存，尚未经独立学术核查。本页自动作为依据；可勾选其他原页。</p><label>注记内容<textarea id="review-summary" maxlength="4000"></textarea></label><div id="review-evidence" aria-label="补充依据页"></div><button id="add-review" type="button">加入待保存列表</button><button id="export-reviews" type="button">下载审核请求（尚未写入课程）</button><button id="clear-reviews" type="button">清空待保存列表</button><p id="review-status" role="status"></p></section></section></section></main>
+<script id="course-data" type="application/json">__EXAMSAGE_DATA__</script>
+<script>
+'use strict';
+const courses=JSON.parse(document.getElementById('course-data').textContent);
+const courseSelect=document.getElementById('course'),filter=document.getElementById('filter'),items=document.getElementById('items'),results=document.getElementById('results');
+let current=null,active=null;
+let activeRef=null;
+const pendingReviews=new Map();
+const reviewKey=()=>JSON.stringify([current.course_id,current.profile.review_context?.snapshot]);
+const pending=()=>pendingReviews.get(reviewKey())||[];
+function pageRefs(){return current.items.filter(i=>i.kind==='block').flatMap(i=>i.bundle.sources.filter(s=>s.record_id===i.id).flatMap(s=>s.refs).filter(r=>i.id===r.document_id+':p'+r.page));}
+function drawSavedReviews(container,reviews){container.replaceChildren();for(const note of reviews||[]){const box=node('div',undefined,'saved-review');box.append(node('strong','已保存学习注记 · '+(note.origin==='agent_note'?'Agent 注记':'用户注记')+' · 未经独立学术核查'),node('div',note.summary,'body'));for(const evidence of note.evidence){const ref=pageRefs().find(r=>r.document_id===evidence.document_id&&r.page===evidence.page);if(ref){const button=node('button','核查依据：'+ref.filename+' · 第 '+ref.page+' 页');button.type='button';button.addEventListener('click',()=>sourcePage(ref));box.append(button);}}container.append(box);}}
+function reviewStatus(message){document.getElementById('review-status').textContent=message||('本课程待保存 '+pending().length+' 条；刷新页面前请下载请求。');document.getElementById('export-reviews').disabled=!pending().length;document.getElementById('clear-reviews').disabled=!pending().length;}
+function setupReview(ref){activeRef=ref;const form=document.getElementById('review-form');form.hidden=!current.profile.review_context;let notice=document.getElementById('review-readonly');if(!notice){notice=node('p',undefined,'warning');notice.id='review-readonly';form.before(notice);}notice.hidden=!form.hidden;notice.textContent=current.profile.review_write_status==='scope_incomplete'?'当前只允许部分来源，注记保存不可用；本次仅供阅读。':current.profile.review_write_status==='export_readonly'?'这是只读导出，不能用它重新启用已移除的来源或保存注记。':'此课程尚未配置注记保存入口。';if(form.hidden)return;document.getElementById('review-summary').value='';const choices=document.getElementById('review-evidence');choices.replaceChildren();for(const other of pageRefs()){if(other.document_id===ref.document_id&&other.page===ref.page)continue;const label=node('label',undefined,'review-option'),check=node('input');check.type='checkbox';check.dataset.document=other.document_id;check.dataset.page=String(other.page);label.append(check,node('span',other.filename+' · 第 '+other.page+' 页'));choices.append(label);}reviewStatus();}
+document.getElementById('add-review').addEventListener('click',()=>{const summary=document.getElementById('review-summary').value.trim();if(!summary||summary.includes('\0')||summary.length>4000){reviewStatus('请填写 1–4000 字的有效注记内容。');return;}const selected=[...document.querySelectorAll('#review-evidence input:checked')].map(input=>pageRefs().find(r=>r.document_id===input.dataset.document&&r.page===Number(input.dataset.page)));if(selected.length>19||pending().length>=100){reviewStatus('每条最多 20 个依据页，每份请求最多 100 条注记。');return;}const notes=pending();notes.push({id:'review-'+crypto.randomUUID(),origin:'user_note',review:'unverified_note',summary,targets:[{document_id:activeRef.document_id,page:activeRef.page}],evidence:[activeRef,...selected].map(r=>({document_id:r.document_id,page:r.page,source_sha256:r.sha256}))});pendingReviews.set(reviewKey(),notes);document.getElementById('review-summary').value='';reviewStatus();});
+document.getElementById('clear-reviews').addEventListener('click',()=>{pendingReviews.delete(reviewKey());reviewStatus();});
+document.getElementById('export-reviews').addEventListener('click',()=>{if(!pending().length)return;const request={schema_version:'source-review-request-v1',course_id:current.course_id,...current.profile.review_context,reviews:pending()};const url=URL.createObjectURL(new Blob([JSON.stringify(request,null,2)],{type:'application/json'}));const link=node('a');link.href=url;link.download=current.course_id+'-source-reviews.json';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);reviewStatus('已发起请求文件下载，尚未写入课程。请应用请求并导入新课程库，再打开新阅读器核验。');});
+const kinds={block:'原文',proof:'推导 / 证明',claim:'文献主张',interpretation:'解释',question:'题目',answer:'参考答案',formula:'公式',concept:'概念',rubric:'评分依据'};
+function node(tag,text,cls){const element=document.createElement(tag);if(text!==undefined)element.textContent=text;if(cls)element.className=cls;return element;}
+function sourcePage(ref){const page=current.items.flatMap(i=>i.bundle.records).find(r=>r.id===ref.document_id+':p'+ref.page);document.getElementById('source').hidden=false;document.getElementById('source-title').textContent=ref.filename+' · 本地第 '+ref.page+' 页';document.getElementById('source-meta').textContent='来源 SHA256：'+ref.sha256;const available=page&&page.details?.extraction_status!=='failed'&&page.text.trim();document.getElementById('source-text').textContent=available?page.text:'本页没有可用的提取文字，需核对原文件；不能据此推断内容。';drawSavedReviews(document.getElementById('source-reviews'),page?.details?.source_reviews);setupReview(ref);}
+function showReview(){
+  const report=current.profile.source_review;if(!report)return;
+  results.replaceChildren();document.getElementById('source').hidden=true;active=null;drawList();
+  results.append(node('h2','导入审核'),node('p','共 '+report.pages+' 页；提取失败 '+report.failed_pages+' 页；部分提取 '+report.partial_pages+' 页；隐藏 '+report.hidden_pages+' 页。'),node('p','这里只核查导入状态；学术内容仍待独立审核。','warning'));
+  const statuses={failed:'提取失败',partial:'部分提取',text_extracted:'原生文字已提取'};
+  for(const review of report.page_reviews){const article=node('article');const images=Number.isInteger(review.image_count)?review.image_count+' 个图片对象':'图片数量未核查';article.append(node('h3',review.document_id+' · 第 '+review.page+' 页'),node('p',(statuses[review.status]||review.status)+(review.hidden?' · 隐藏页':'')+' · '+images));
+    for(const issue of review.issues)article.append(node('p',issue,'warning'));
+    const item=current.items.find(i=>i.id===review.document_id+':p'+review.page);const ref=item?.bundle.sources.flatMap(s=>s.refs).find(r=>r.document_id===review.document_id&&r.page===review.page);
+    if(ref&&!review.hidden){const button=node('button','查看本页文字');button.type='button';button.addEventListener('click',()=>sourcePage(ref));article.append(button);}results.append(article);
+  }
+}
+function showBundle(bundle,label){const heading=node('h2',label);results.append(heading);for(const record of bundle.records){const card=node('article');card.append(node('div',(kinds[record.kind]||record.kind)+' · '+record.review,'meta'),node('h3',record.title),node('div',record.text,'body'));const academic=record.details?.academic;if(academic){if(academic.assumptions?.length)card.append(node('p','条件：'+academic.assumptions.join('；')));for(const [index,step] of (academic.steps||[]).entries())card.append(node('p',(index+1)+'. '+step.text));}for(const warning of record.limitations||[])card.append(node('p',warning,'warning'));const citation=bundle.sources.find(s=>s.record_id===record.id);if(citation){const refs=node('div',undefined,'refs');for(const ref of citation.refs){const button=node('button',ref.filename+' · 第 '+ref.page+' 页');button.type='button';button.addEventListener('click',()=>sourcePage(ref));refs.append(button);}card.append(refs,node('div','引用 '+citation.source_id,'meta'));}results.append(card);}for(const limitation of bundle.limitations||[])results.append(node('p',limitation,'warning'));if(!bundle.records.length)results.append(node('p','没有可访问的证据。'));
+}
+function choose(item){active=item.id;results.replaceChildren();document.getElementById('source').hidden=true;showBundle(item.bundle,'证据详情');if(item.answer){const button=node('button','核对本小问的答案');button.type='button';button.addEventListener('click',()=>{results.replaceChildren();showBundle(item.answer,item.answer.sufficiency==='insufficient'?'配对答案不足':'题目、共享条件与参考答案');});results.append(button);}const related=item.bundle.relations||[];if(related.length){const section=node('article');section.append(node('h3','关联记录'));for(const relation of related){const other=current.items.find(i=>i.id===(relation.source===item.id?relation.target:relation.source));if(other){const button=node('button',relation.kind+' · '+other.title);button.type='button';button.addEventListener('click',()=>choose(other));section.append(button);}}results.append(section);}drawList();}
+function drawList(){items.replaceChildren();const matching=current.items.filter(i=>i.title.toLocaleLowerCase().includes(filter.value.toLocaleLowerCase()));for(const item of matching){const button=node('button',(kinds[item.kind]||item.kind)+' / '+item.title);button.type='button';button.setAttribute('aria-pressed',String(active===item.id));button.addEventListener('click',()=>choose(item));items.append(button);}if(!matching.length)items.append(node('p','没有匹配标题；请更换关键词。'));}
+function changeCourse(){current=courses.find(c=>c.course_id===courseSelect.value);results.replaceChildren();filter.value='';active=null;document.getElementById('source').hidden=true;document.getElementById('review').hidden=!current?.profile.source_review;if(!current)return;document.getElementById('profile').textContent=(current.profile.material_status==='demonstration'?'演示资料 · ':'')+(!current.profile.syllabus_version||current.profile.syllabus_version==='unspecified'?'课程版本待补充':current.profile.syllabus_version)+' · '+current.items.length+' 条可读记录';drawList();const first=current.items.find(i=>i.id==='focus')||current.items[0];if(first)choose(first);}
+for(const course of courses){const option=node('option',course.name);option.value=course.course_id;courseSelect.append(option);}courseSelect.addEventListener('change',changeCourse);filter.addEventListener('input',drawList);document.getElementById('review').addEventListener('click',showReview);document.getElementById('close-source').addEventListener('click',()=>{document.getElementById('source').hidden=true;});changeCourse();
+const mapButton = node('button', '查看课程知识结构');
+mapButton.type = 'button';
+document.getElementById('review').after(mapButton);
+const topicKinds = {topic:'主主题', method:'方法', application:'应用', worked_example:'例题'};
+function showMap() {
+  const graph = current.knowledge_map;
+  if (!graph) return;
+  active = null;
+  drawList();
+  document.getElementById('source').hidden = true;
+  results.replaceChildren(node('h2', '课程知识结构'));
+  results.append(node('p', '已引用 ' + graph.coverage.cited_pages + ' / ' + graph.coverage.visible_pages +
+    ' 个可见原页。引文已匹配，主题关系与学术解释待核查。'));
+  const addBranch = (parent, container) => {
+    const children = graph.nodes.filter(topic => topic.parent === parent);
+    if (!children.length) return;
+    const list = node('ul');
+    for (const topic of children) {
+      const row = node('li'), card = node('article');
+      card.append(node('div', topicKinds[topic.kind], 'meta'), node('h3', topic.title), node('p', topic.summary));
+      for (const ref of topic.support) {
+        const button = node('button', ref.filename + ' · 第 ' + ref.page + ' 页');
+        button.type = 'button';
+        button.addEventListener('click', () => {
+          sourcePage(ref);
+          document.getElementById('close-source').focus();
+        });
+        card.append(node('blockquote', ref.quote), button);
+      }
+      for (const warning of topic.limitations) card.append(node('p', warning, 'warning'));
+      row.append(card);
+      addBranch(topic.id, row);
+      list.append(row);
+    }
+    container.append(list);
+  };
+  addBranch('', results);
+}
+function selectMap() {
+  mapButton.hidden = !current?.knowledge_map;
+  if (!mapButton.hidden) showMap();
+}
+mapButton.addEventListener('click', showMap);
+courseSelect.addEventListener('change', selectMap);
+selectMap();
+</script></body></html>

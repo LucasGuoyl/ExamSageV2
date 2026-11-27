@@ -1,0 +1,160 @@
+{
+  "workspace": "cross-discipline-demo",
+  "profile": {
+    "course_id": "demo-literature",
+    "curriculum_system": "demonstration",
+    "institution": null,
+    "stage": "演示：非认证课程",
+    "language": "zh/en",
+    "syllabus_version": "2026-demo-v1",
+    "disciplines": [
+      "literature"
+    ],
+    "material_status": "demonstration",
+    "outcomes": [
+      {
+        "id": "reason-with-sources",
+        "description": "区分原文、条件、推理与证据不足。",
+        "refs": [
+          {
+            "document_id": "lesson",
+            "page": 1
+          },
+          {
+            "document_id": "lesson",
+            "page": 2
+          }
+        ],
+        "record_ids": [
+          "focus"
+        ]
+      }
+    ]
+  },
+  "manifest": {
+    "course_key": "demo-literature",
+    "course_name": "演示 / 文学：原创短诗的两种解释",
+    "documents": [
+      {
+        "id": "lesson",
+        "relative_path": "lesson.txt",
+        "sha256": "5e5e52fca154ff076f386ac0f566acf783185646528d36c1126aca9fd7560300",
+        "kind": "literary_text",
+        "pages": 2
+      }
+    ]
+  },
+  "records": [
+    {
+      "id": "focus",
+      "kind": "interpretation",
+      "title": "窗：等待联系的读法",
+      "text": "开窗、空椅与未寄的信可以读作对联系的等待。门外的钥匙使这一读法受到挑战。",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 1
+        },
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "details": {
+        "academic": {
+          "nature": "interpretation",
+          "evidence_record_ids": [
+            "quote"
+          ],
+          "counter_record_ids": [
+            "alternative"
+          ]
+        }
+      },
+      "limitations": [
+        "原创诗的一个可争辩解释，不是唯一作者意图或官方答案。"
+      ]
+    },
+    {
+      "id": "quote",
+      "kind": "block",
+      "title": "窗：原创诗原句",
+      "aliases": ["短诗", "原创短诗"],
+      "text": "原创演示诗《窗》，作者：押题宝开发演示（AI生成），2026-11-16。非真实文学课程或出版作品。\n1 雨停了，窗还开着。\n2 灯把空椅照成一封未寄的信。\n3 我把钥匙放回门外。\n4 风没有回答。",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 1
+        }
+      ]
+    },
+    {
+      "id": "alternative",
+      "kind": "interpretation",
+      "title": "窗：离开归属的读法",
+      "text": "门外的钥匙和没有回答的风可支持离开；开窗对彻底隔绝构成反证。",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 1
+        },
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "details": {
+        "academic": {
+          "nature": "interpretation",
+          "evidence_record_ids": [
+            "quote"
+          ]
+        }
+      }
+    },
+    {
+      "id": "q",
+      "kind": "question",
+      "title": "演示讨论/计算题",
+      "text": "只依据这首原创诗，区分原句、解释与反证。",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 1
+        }
+      ]
+    },
+    {
+      "id": "q-a",
+      "kind": "question",
+      "title": "小问 a",
+      "text": "比较两种读法并给出行号；不要把一种读法称为唯一正确答案。",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "parent_id": "q"
+    }
+  ],
+  "relations": [
+    {
+      "id": "readings",
+      "kind": "contradicts",
+      "source": "focus",
+      "target": "alternative",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 1
+        },
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "origin": "inferred"
+    }
+  ]
+}

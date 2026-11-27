@@ -1,0 +1,20 @@
+async (page) => {
+  const results=[];const check=async(name,run)=>{try{await run();results.push({name,passed:true});}catch(e){results.push({name,passed:false,error:e.message.slice(0,250)});}};
+  const assert=(v,message)=>{if(!v)throw new Error(message);};
+  const search=async(q)=>{await page.locator('#query').fill(q);await page.locator('#query').press('Enter');await page.waitForFunction(()=>document.querySelector('#count').textContent!=='查找中…');};
+  await page.goto('http://127.0.0.1:8766/');await page.locator('#cards article').first().waitFor();
+  await check('复习学生：六条公式均可排版',async()=>{await page.locator('#formulas').click();await page.waitForFunction(()=>document.querySelector('#count').textContent==='6 条结果');assert(await page.locator('#cards .math-block .katex').count()===6,'Not all six formulas rendered');assert(await page.locator('.katex-error').count()===0,'Math rendering error');});
+  await check('来源状态：普通公式备注不冒充原页核查',async()=>{const card=page.locator('#cards article').first();assert(!(await card.locator('.tag').innerText()).includes('原页核对'),'Plain transcription note promoted to source review');assert(await card.getByText('查看原始抽取文本（未修正）',{exact:true}).count()===0,'Empty raw-text section rendered for formula note');});
+  await check('做题学生：2022 Q1 原符号已核对转录',async()=>{await search('2022 Q1');const text=await page.locator('#cards article').first().innerText();assert(!/[\u0B00-\u0D7F]/.test(text),'Uncorrected script glyphs in primary question');assert(await page.locator('#cards article').first().locator('.katex').count()>0,'Question equation not rendered');});
+  await check('审阅学生：原始抽取文本仍可核查',async()=>{const raw=page.locator('#cards article').first().getByText('查看原始抽取文本（未修正）',{exact:true});await raw.click();assert(/[\u0B00-\u0D7F]/.test(await page.locator('#cards article').first().locator('.raw-text').innerText()),'Raw extraction was overwritten');});
+  await check('做题学生：精确小问 ii 优先呈现',async()=>{await search('2024 Q1(ii)');assert((await page.locator('#cards h3').first().innerText()).includes('Q1(ii)'),'Requested subquestion not first');});
+  await check('做题学生：不存在的小问不替换成整题',async()=>{await search('2024 Q1(iv)');assert(await page.locator('#cards article').count()===0,'Missing subquestion silently replaced');assert((await page.locator('#count').innerText()).includes('证据不足'),'Missing insufficient state');});
+  await check('题库学生：三位题号不误匹配前缀',async()=>{await search('2024 Q100 地下水年龄');assert(await page.locator('#cards article').count()===0,'Question prefix matched');});
+  await check('题库学生：紧贴中文的年份识别',async()=>{await search('2023年真题试卷');assert((await page.locator('#resultLimitations').innerText()).includes('年份'),'Year suffix not recognized');});
+  await check('查答案学生：无官方答案时明确告知',async()=>{await search('2024 Q1 official answer');assert((await page.locator('#resultLimitations').innerText()).includes('官方考试答案'),'Missing answer warning');assert(await page.locator('#cards article').count()===0,'Unofficial answer substituted');});
+  await check('手机学生：题干表格不撑宽页面',async()=>{await page.setViewportSize({width:320,height:740});await search('2024 Q1');assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Mobile horizontal overflow');assert(await page.locator('#cards table').count()>0,'Missing mobile table');});
+  await check('阅读学生：翻到末页后禁用下一页',async()=>{await page.locator('#cards .ref').first().click();await page.getByRole('button',{name:'下一页',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#pageTitle').textContent.endsWith('· 3'));assert(await page.locator('#next').isDisabled(),'Next enabled on last page');});
+  await check('键盘学生：最后控件 Tab 回到关闭按钮',async()=>{await page.locator('#pageContent summary').last().focus();await page.keyboard.press('Tab');assert(await page.evaluate(()=>document.activeElement.id==='close'),'Focus did not wrap to close');});
+  await page.keyboard.press('Escape');await page.setViewportSize({width:1365,height:900});
+  return {round:'student-paths',total:results.length,passed:results.filter(x=>x.passed).length,results};
+}
