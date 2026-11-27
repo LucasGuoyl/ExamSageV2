@@ -1,0 +1,65 @@
+name: Windows student release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  student-release:
+    name: Student kit and study flow (Python ${{ matrix.python }})
+    runs-on: windows-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12']
+    defaults:
+      run:
+        working-directory: examsage-v2
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install the development and student runtime dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Build the Windows student kit
+        run: python tools/build_student_kit.py dist/rebuilt.zip
+      - name: Verify shipped and rebuilt student files
+        shell: python
+        run: |
+          import hashlib
+          import json
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          release = Path("releases/windows-study-pilot")
+          archive = release / "ExamSage-Study-Windows.zip"
+          extracted = release / "学生版"
+          assert hashlib.sha256(archive.read_bytes()).hexdigest() == "c52aedacc1dc5797759c0a06b3f4f1a65c558178368138bb8c0db43e446c4464"
+          assert Path("../最新版启动入口/启动押题宝.bat").is_file()
+          assert (extracted / "开始学习.bat").is_file()
+          with ZipFile(archive) as shipped, ZipFile("dist/rebuilt.zip") as rebuilt:
+              names = set(shipped.namelist())
+              manifest = json.loads(shipped.read("kit-files.json"))
+              assert names == set(manifest) | {"kit-files.json"}
+              assert names == set(rebuilt.namelist())
+              assert len(names) == len(shipped.namelist()) == len(rebuilt.namelist())
+              assert names == {p.relative_to(extracted).as_posix() for p in extracted.rglob("*") if p.is_file()}
+              for name in sorted(names):
+                  data = shipped.read(name)
+                  assert data == rebuilt.read(name) == (extracted / name).read_bytes(), name
+                  if name in manifest:
+                      assert hashlib.sha256(data).hexdigest() == manifest[name], name
+      - name: Test student distribution, four courses, chat, sources and review
+        run: >-
+          python -m pytest
+          tests/test_student_distribution.py tests/test_cross_discipline_demo.py
+          tests/test_student_study_window.py tests/test_study_host.py
+          tests/test_study_reader.py tests/test_study_review.py
