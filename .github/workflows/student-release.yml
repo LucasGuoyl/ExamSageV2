@@ -42,7 +42,7 @@ jobs:
           release = Path("releases/windows-study-pilot")
           archive = release / "ExamSage-Study-Windows.zip"
           extracted = release / "学生版"
-          assert hashlib.sha256(archive.read_bytes()).hexdigest() == "c52aedacc1dc5797759c0a06b3f4f1a65c558178368138bb8c0db43e446c4464"
+          assert hashlib.sha256(archive.read_bytes()).hexdigest() == "10db564dab529d65bd1b0cddb98fbb7386a70dba73fb15bcc19e9fea986397b6"
           assert Path("../最新版启动入口/启动押题宝.bat").is_file()
           assert (extracted / "开始学习.bat").is_file()
           with ZipFile(archive) as shipped, ZipFile("dist/rebuilt.zip") as rebuilt:

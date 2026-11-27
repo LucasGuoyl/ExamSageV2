@@ -5,6 +5,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StringConstraints
 
 from .domain import digest
+from .ingest import only_replacement_characters
 from .source_reviews import review_warnings
 
 
@@ -35,8 +36,9 @@ def original_text_field(details):
     """Identify extracted source text without promoting later commentary to an original."""
     if details.get('extraction_status') == 'failed':
         return None
-    if details.get('raw_text') is not None:
-        return 'raw_text' if isinstance(details['raw_text'],str) else None
+    raw = details.get('raw_text')
+    if raw is not None:
+        return 'raw_text' if isinstance(raw, str) and not only_replacement_characters(raw) else None
     return None if details.get('visual_review') or details.get('supplement') else 'text'
 
 

@@ -22,6 +22,22 @@ def run(args, env, *, stdin=None, success=True):
     return result
 
 
+def test_prepare_prints_unicode_directory_through_a_legacy_windows_pipe(tmp_path):
+    profile = {"LOCALAPPDATA": str(tmp_path / "profile")}
+    for name in ("WINDIR", "SystemRoot", "TEMP", "TMP", "PATH"):
+        if name in os.environ:
+            profile[name] = os.environ[name]
+    archive = tmp_path / "student.zip"
+    run([PYTHON, "-I", "-B", ROOT / "tools/build_student_kit.py", archive], profile)
+    folder = tmp_path / "学生"
+    with ZipFile(archive) as package:
+        package.extractall(folder)
+    script = ("import runpy, sys; sys.stdout.reconfigure(encoding='cp1252'); "
+              "sys.argv = sys.argv[1:]; runpy.run_path(sys.argv[0], run_name='__main__')")
+    result = run([PYTHON, "-I", "-B", "-c", script, folder / "kit.py", "prepare"], profile)
+    assert Path(result.stdout.decode("utf-8").strip()) == folder / "marketplace"
+
+
 def call(plugin, env, method, args, *, success=True):
     cfg, = json.loads((plugin/'.mcp.json').read_bytes())['mcpServers'].values()
     wire = [{'id': 1, 'method': 'initialize', 'params': {'protocolVersion': '2025-11-25',

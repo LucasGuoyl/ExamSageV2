@@ -22,7 +22,7 @@ py -3.11 -m venv .venv
 Get-FileHash dist\ExamSage-Study-Windows.zip -Algorithm SHA256
 ```
 
-本次随附学生 ZIP 的 SHA-256 为 `c52aedacc1dc5797759c0a06b3f4f1a65c558178368138bb8c0db43e446c4464`。同一环境和相同源码可重建。包内的 `kit-files.json` 记录每个交付文件的 SHA-256。
+本次随附学生 ZIP 的 SHA-256 为 `10db564dab529d65bd1b0cddb98fbb7386a70dba73fb15bcc19e9fea986397b6`。同一环境和相同源码可重建。包内的 `kit-files.json` 记录每个交付文件的 SHA-256。
 
 ## 开发与验证
 

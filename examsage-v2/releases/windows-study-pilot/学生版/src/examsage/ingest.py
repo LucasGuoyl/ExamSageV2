@@ -111,6 +111,10 @@ def extract_pptx(path: Path, doc: Document, assets: Path) -> list[Page]:
     return pages
 
 
+def only_replacement_characters(text: str) -> bool:
+    return "\ufffd" in text and not text.replace("\ufffd", "").strip()
+
+
 def extract_document(path: Path, doc: Document, assets: Path) -> list[Page]:
     assets.mkdir(parents=True, exist_ok=True)
     if path.suffix.lower() == ".pptx":
@@ -129,6 +133,8 @@ def extract_document(path: Path, doc: Document, assets: Path) -> list[Page]:
                 issues.append("image_inventory_failed:" + type(exc).__name__)
             try:
                 text = page.extract_text() or ""
+                if only_replacement_characters(text):
+                    raise UnicodeError("PDF text contains only undecodable characters")
                 if len(text.strip()) < 30:
                     issues.append("little_or_no_native_text")
                 pages.append(Page(document_id=doc.id, number=number, text=text,
@@ -195,7 +201,8 @@ def ingest(source_root: Path, manifest: Manifest, data_dir: Path) -> dict:
         cache = data_dir / "cache" / (digest([doc.id, doc.sha256, PARSER_VERSION]) + ".json")
         if cache.exists():
             extracted = [Page.model_validate(p) for p in json.loads(cache.read_text(encoding="utf-8"))]
-            if any(p.status == "failed" for p in extracted):
+            if any(p.status == "failed" or (source.suffix.lower() == ".pdf" and only_replacement_characters(p.text))
+                   for p in extracted):
                 extracted = extract_document(destination, doc, assets)
                 atomic_json(cache, [p.model_dump() for p in extracted])
                 processed += 1

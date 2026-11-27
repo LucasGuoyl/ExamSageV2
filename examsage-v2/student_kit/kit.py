@@ -2,6 +2,7 @@
 import argparse
 from contextlib import ExitStack
 from hashlib import sha256
+from io import TextIOWrapper
 import json
 from pathlib import Path
 import subprocess
@@ -164,6 +165,10 @@ def main():
 
 
 if __name__ == '__main__':
+    # The CLI may be invoked through pipes on a Windows system with a legacy code page.
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, TextIOWrapper):
+            stream.reconfigure(encoding='utf-8', errors=stream.errors)
     try:
         main()
     except (OSError,ValueError,RuntimeError,subprocess.SubprocessError) as exc:

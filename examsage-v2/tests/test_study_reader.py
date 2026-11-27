@@ -14,6 +14,40 @@ from examsage.study_window import StudyDesk
 PAGES = ['Hooke\nLinear range.  Use k=200 N/m.', 'Balance\nF=kx.  x=0.05 m.']
 
 
+def test_pdf_decoder_placeholders_do_not_become_citable_text(tmp_path, monkeypatch):
+    from pypdf import PageObject
+    from examsage.domain import Manifest
+    from examsage.ingest import ingest
+    from examsage.knowledge_map import extracted_text
+    from examsage.manifest import describe_document
+    from test_course_pack_formats import make_pdf
+    import json
+
+    source = tmp_path / "source"
+    source.mkdir()
+    pdf = source / "reading.pdf"
+    make_pdf(pdf)
+    doc = describe_document(pdf, source, "c", "lecture", 2)
+    manifest = Manifest(course_key="c", course_name="Course", documents=[doc])
+    valid = "Water \ufffd pressure"
+    damaged = "\ufffd \ufffd\n\ufffd"
+    monkeypatch.setattr(PageObject, "extract_text", lambda page: valid if page.page_number == 0 else damaged)
+    data = tmp_path / "data"
+    first = ingest(source, manifest, data)
+    assert [(p.text, p.status) for p in first["pages"]] == [(valid, "partial"), ("", "failed")]
+
+    # A previous import could already have saved the undecodable text as partial.
+    cache, = (data / "cache").glob("*.json")
+    stored = json.loads(cache.read_bytes())
+    stored[1].update(text=damaged, status="partial", issues=[])
+    cache.write_text(json.dumps(stored), encoding="utf-8")
+    second = ingest(source, manifest, data)
+    assert second["processed"] == 1 and second["pages"][1].status == "failed"
+    old_record = second["records"][1].model_copy(deep=True)
+    old_record.details.update(raw_text=damaged, extraction_status="partial")
+    assert extracted_text(old_record) == ""
+
+
 @pytest.fixture
 def desk(tmp_path):
     workspace = StudentWorkspace(tmp_path, Principal('test-reader', frozenset()))
