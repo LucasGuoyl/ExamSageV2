@@ -309,6 +309,19 @@ svg {
   font-weight:400;
 }
 
+#language {
+  margin-inline-start: auto;
+  min-width: 0;
+  max-width: 6.5em;
+  border: 1px solid #646474;
+  border-radius: 6px;
+  background: #292937;
+  color: #fff;
+  padding: 4px 2px;
+  font: inherit;
+  font-size: 12px;
+}
+
 .menu,.mobile-close,.shade {
   display:none;
 }

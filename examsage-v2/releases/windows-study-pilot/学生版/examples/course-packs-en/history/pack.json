@@ -1,0 +1,121 @@
+{
+  "workspace": "cross-discipline-demo",
+  "profile": {
+    "course_id": "demo-history",
+    "curriculum_system": "demonstration",
+    "institution": null,
+    "stage": "Teaching demonstration, unaccredited",
+    "language": "en",
+    "syllabus_version": "2026-demo-v1",
+    "disciplines": [
+      "history"
+    ],
+    "material_status": "demonstration",
+    "outcomes": [
+      {
+        "id": "reason-with-sources",
+        "description": "Distinguish source wording, assumptions, reasoning and gaps in the evidence.",
+        "refs": [
+          {
+            "document_id": "declaration",
+            "page": 1
+          },
+          {
+            "document_id": "lesson",
+            "page": 2
+          }
+        ],
+        "record_ids": [
+          "focus"
+        ]
+      }
+    ]
+  },
+  "manifest": {
+    "course_key": "demo-history",
+    "course_name": "Demo / History: A source's claim and historical practice",
+    "documents": [
+      {
+        "id": "declaration",
+        "relative_path": "declaration-excerpt.txt",
+        "sha256": "56eeee1466d55a4af9f8c66b5b49ba64e4228328316366cde8f3095e21566b18",
+        "kind": "primary_source",
+        "pages": 1
+      },
+      {
+        "id": "lesson",
+        "relative_path": "lesson.txt",
+        "sha256": "98ba96518076102f459408a412d714007a7112d084bae9ef72dfdfd2bcbbab47",
+        "kind": "lecture",
+        "pages": 2
+      }
+    ]
+  },
+  "records": [
+    {
+      "id": "focus",
+      "kind": "claim",
+      "title": "The Declaration's claim about equality",
+      "text": "The words “all men are created equal” express a claim in the document. Evidence about social practice in 1776 requires further sources.",
+      "refs": [
+        {
+          "document_id": "declaration",
+          "page": 1
+        },
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "details": {
+        "academic": {
+          "nature": "author_claim",
+          "evidence_record_ids": [
+            "quote"
+          ]
+        }
+      },
+      "limitations": [
+        "The declaration of equality alone cannot establish equal treatment in practice."
+      ]
+    },
+    {
+      "id": "quote",
+      "kind": "block",
+      "title": "Primary-source excerpt on equality",
+      "text": "We hold these truths to be self-evident, that all men are created equal,",
+      "refs": [
+        {
+          "document_id": "declaration",
+          "page": 1
+        }
+      ]
+    },
+    {
+      "id": "q",
+      "kind": "question",
+      "title": "Discussion question",
+      "text": "Use the supplied excerpt from the Declaration of Independence. Identify its purpose and the scope of the claim it supports.",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 1
+        }
+      ]
+    },
+    {
+      "id": "q-a",
+      "kind": "question",
+      "title": "Part a",
+      "text": "Does the excerpt establish that everyone received equal treatment in practice? Identify the additional evidence you would need.",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "parent_id": "q"
+    }
+  ],
+  "relations": []
+}

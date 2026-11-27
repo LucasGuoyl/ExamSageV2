@@ -1,0 +1,33 @@
+async (page) => {
+  const assert = (ok, message) => { if (!ok) throw new Error(message); };
+  const lang = () => page.locator('html').getAttribute('lang');
+  const visible = async (locator) => assert(await locator.isVisible(), 'Expected visible control: ' + locator);
+  const base = page.url().split('#')[0].split('?')[0];
+  await page.goto(base);
+  assert(await lang() === 'zh-CN', 'A standalone reader retains the original Chinese default');
+  await page.goto(base + '?lang=en');
+  assert(await lang() === 'en', 'The English reader link must open in English');
+  await visible(page.getByRole('heading', {name: 'ExamSage course reader', exact: true}));
+  await page.getByRole('combobox', {name: 'Choose course'}).selectOption('demo-physics');
+  await page.locator('#results .refs button').first().click();
+  const source = page.locator('#source-text');
+  const passage = await source.textContent();
+  assert(passage.includes('200 N/m'), 'The original spring source must be visible');
+  assert((await page.locator('#source-title').textContent()).includes('page 1'), 'English file-page reference');
+  const draft = '原文 note about 200 N/m';
+  await page.locator('#review-summary').fill(draft);
+  await page.locator('#reader-language').selectOption('zh');
+  assert(await lang() === 'zh-CN', 'Can switch back to Chinese without reloading the file');
+  assert(await source.textContent() === passage, 'Unchanged source wording');
+  assert(await page.locator('#review-summary').inputValue() === draft, 'Draft survives a language change');
+  await page.locator('#reader-language').selectOption('en');
+  await page.getByRole('button', {name: 'Queue note', exact: true}).click();
+  assert((await page.locator('#review-status').textContent()).includes('1 pending note'), 'English queue status');
+  await page.getByRole('button', {name: 'View import checks', exact: true}).click();
+  await visible(page.getByRole('heading', {name: 'Import checks', exact: true}));
+  await page.locator('#filter').fill('____no_such_title____');
+  assert((await page.locator('#items').textContent()).includes('No titles match'), 'English empty state');
+  await page.goto(base + '#lang=en');
+  assert(await lang() === 'en', 'A file fragment also opens English');
+  return {passed: true};
+}

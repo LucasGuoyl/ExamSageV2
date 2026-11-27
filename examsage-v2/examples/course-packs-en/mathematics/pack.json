@@ -1,0 +1,148 @@
+{
+  "workspace": "cross-discipline-demo",
+  "profile": {
+    "course_id": "demo-mathematics",
+    "curriculum_system": "demonstration",
+    "institution": null,
+    "stage": "Teaching demonstration, unaccredited",
+    "language": "en",
+    "syllabus_version": "2026-demo-v1",
+    "disciplines": [
+      "mathematics"
+    ],
+    "material_status": "demonstration",
+    "outcomes": [
+      {
+        "id": "reason-with-sources",
+        "description": "Distinguish source wording, assumptions, reasoning and gaps in the evidence.",
+        "refs": [
+          {
+            "document_id": "lesson",
+            "page": 1
+          },
+          {
+            "document_id": "lesson",
+            "page": 2
+          }
+        ],
+        "record_ids": [
+          "focus"
+        ]
+      }
+    ]
+  },
+  "manifest": {
+    "course_key": "demo-mathematics",
+    "course_name": "Demo / Mathematics: Proof by induction",
+    "documents": [
+      {
+        "id": "lesson",
+        "relative_path": "lesson.txt",
+        "sha256": "b31a3deca5dc2f245bf706becaa7e5875b07d709a51e271903ef7364a22bf0e2",
+        "kind": "lecture",
+        "pages": 2
+      }
+    ]
+  },
+  "records": [
+    {
+      "id": "focus",
+      "kind": "proof",
+      "title": "Induction proof of the sum of positive integers",
+      "text": "The base case and the induction step together establish the finite sum formula for positive integers.",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 1
+        },
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "details": {
+        "academic": {
+          "nature": "derivation",
+          "assumptions": [
+            "n is a positive integer"
+          ],
+          "steps": [
+            {
+              "text": "For n=1, S_1=1=1(1+1)/2. Assume S_k=k(k+1)/2.",
+              "refs": [
+                {
+                  "document_id": "lesson",
+                  "page": 1
+                }
+              ]
+            },
+            {
+              "text": "S_(k+1)=k(k+1)/2+(k+1)=(k+1)(k+2)/2.",
+              "refs": [
+                {
+                  "document_id": "lesson",
+                  "page": 2
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "q",
+      "kind": "question",
+      "title": "Practice problem",
+      "text": "Original teaching exercise.\nUse mathematical induction to prove that for every positive integer n, S_n=1+2+...+n=n(n+1)/2. At n=1 both sides equal 1. Suppose that the formula holds for some integer k>=1.",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 1
+        }
+      ]
+    },
+    {
+      "id": "q-a",
+      "kind": "question",
+      "title": "Part a",
+      "text": "Calculate the finite sum for n=10 and explain why the proof requires n to be a positive integer.",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "parent_id": "q"
+    },
+    {
+      "id": "a-a",
+      "kind": "answer",
+      "title": "Worked answer for the original practice exercise",
+      "text": "S_10=55. The base case and successor step cover the positive integers. A non-integer count of terms lies outside the claim.",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "limitations": [
+        "This worked example awaits independent expert review."
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "id": "pair-a",
+      "kind": "has_answer",
+      "source": "q-a",
+      "target": "a-a",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "origin": "explicit"
+    }
+  ]
+}

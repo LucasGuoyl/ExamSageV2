@@ -15,6 +15,7 @@ import sqlite3
 import subprocess
 import threading
 import time
+from urllib.parse import urlsplit
 import webbrowser
 
 from .chat_store import StudentServerBusy
@@ -198,7 +199,7 @@ class Studio:
                     raise ValueError('所选课程不可用。')
                 desk.select(course_id)
             elif action == 'example':
-                desk.select(desk.spring_example())
+                desk.select(desk.spring_example(args.get('language', 'zh')))
             elif action == 'session':
                 session_id = args.get('id')
                 if not desk.course_id or 'id' not in args or (session_id is not None and
@@ -232,6 +233,9 @@ def local_browser(headers, authority, capability):
 
 def _asset(path):
     files = {'/':('studio/index.html','text/html; charset=utf-8'),
+             '/en/':('studio/index.html','text/html; charset=utf-8'),
+             '/zh/':('studio/index.html','text/html; charset=utf-8'),
+             '/studio-locale.js':('studio/studio-locale.js','text/javascript'),
              '/studio.css':('studio/studio.css','text/css'),
              '/studio.js':('studio/studio.js','text/javascript'),
              '/vendor/katex/katex.min.js':('vendor/katex/katex.min.js','text/javascript'),
@@ -257,7 +261,7 @@ def _studio_version():
         version.update(sha256(manifest.read_bytes()).digest())
     for source in ('study_host.py','study_reader.py','study_links.py','study_review.py','learning_state.py',
                    'chat_runner.py','chat_service.py',
-                   'web/studio/index.html','web/studio/studio.css','web/studio/studio.js'):
+                   'web/studio/index.html','web/studio/studio.css','web/studio/studio.js','web/studio/studio-locale.js'):
         version.update(sha256((WEB.parent/source).read_bytes()).digest())
     return version.hexdigest()
 
@@ -366,10 +370,12 @@ def _launch(url):
                     subprocess.Popen([str(edge), '--app=' + url])
                     return
     if not webbrowser.open_new_tab(url):
+        if urlsplit(url).path == '/en/':
+            raise RuntimeError('Set a default browser, then run Start ExamSage.bat again.')
         raise RuntimeError('无法打开浏览器。请设置默认浏览器后再运行「开始学习」。')
 
 
-def _reopen(marker, launch):
+def _reopen(marker, launch, language='zh'):
     # Check the non-private instance id before handing this process's temporary link to a browser.
     try:
         record = json.loads(marker.read_bytes())
@@ -386,14 +392,16 @@ def _reopen(marker, launch):
                 return False
             version = _studio_version()
             if record.get('version') != version or running.get('version') != version:
+                if language == 'en':
+                    raise StudentServerBusy('An older study window is using this workspace. Close it, allow up to ten minutes for the local service to exit, then open Start ExamSage.bat.')
                 raise StudentServerBusy('旧版学习窗口仍占用此工作区。请先关闭旧版窗口，等其本机服务退出后，再双击新版“开始学习”。旧服务关闭窗口后可能需要十分钟退出。')
     except (OSError, ValueError, KeyError, TypeError, HTTPException):
         return False
-    launch(f'http://127.0.0.1:{port}/#{token}')
+    launch(f'http://127.0.0.1:{port}/' + ('en/' if language == 'en' else '') + '#' + token)
     return True
 
 
-def open_studio(*, workspace=None, launch=None):
+def open_studio(*, workspace=None, launch=None, language='zh'):
     """Open the current student's isolated studio, reusing a running instance when available."""
     if workspace is None:
         workspace = local_workspace(recipient_workspace_root(), [])
@@ -402,8 +410,10 @@ def open_studio(*, workspace=None, launch=None):
     try:
         desk = StudyDesk(workspace)
     except StudentServerBusy:
-        if _reopen(marker, launch):
+        if _reopen(marker, launch, language):
             return
+        if language == 'en':
+            raise StudentServerBusy('The study workspace is already open. Return to the existing window, or close it and reopen Start ExamSage.bat when its local service exits.') from None
         raise
     with closing(desk), StudioHTTP(Studio(desk)) as server:
         record = {'port':server.server_port, 'instance':server.instance, 'capability':server.capability,
@@ -415,7 +425,7 @@ def open_studio(*, workspace=None, launch=None):
                            'w', encoding='utf-8') as f:
                 json.dump(record, f)
             temp.replace(marker)
-            launch('http://' + server.authority + '/#' + server.capability)
+            launch('http://' + server.authority + ('/en/' if language == 'en' else '/') + '#' + server.capability)
             server.timeout = 1
             try:
                 while time.monotonic() - server.studio.last_seen < IDLE_SECONDS:

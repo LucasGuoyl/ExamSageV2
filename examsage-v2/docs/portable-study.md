@@ -1,19 +1,19 @@
-# 在自己的 ChatGPT 对话里试用课程资料
+# Use an exported course file in a ChatGPT conversation
 
-课程维护者先准备学习文件，学生只需收到文件并使用自己的 ChatGPT 账号。此方式适合试点时讨论指定课件；导出文件保留生成时的课程快照。
+A maintainer can export selected material for students who want to discuss it in their own ChatGPT conversation. The exported text and page images represent the course snapshot at the time of export.
 
-1. 在押题宝课程主页找到目标文件，点击“下载本文件的对话学习资料（TXT）”。若要讨论图表或手写推导，打开对应物理页，再点“下载本页原图（PNG）”。完整幻灯片导出为静态图片。纯文本讲义可以直接保留原有分行。
-2. 学生在自己的 ChatGPT 对话中选择附件，添加 TXT 和要问的页面 PNG，再发送问题。一个问题跨两页时，把两张图都加入同一对话。附件功能与限制取决于学生账号。[ChatGPT 文件上传说明](https://help.openai.com/en/articles/8555545-file-uploads-faq)
-3. 可以先问“请只根据附件说明这个公式的适用条件。列出文件名、物理页与来源编号。看不清的符号告诉我在哪里”，再追问“沿用刚才的条件，只把这个参数改为两倍，哪些结论会变化？”。
+1. On the local course page, select the document and download its chat study file as TXT. For a chart, handwritten derivation or equation, open the corresponding physical page and download the original page PNG. A complete slide is exported as a static image. Plain-text lecture notes retain their line breaks.
+2. In ChatGPT, attach the TXT file and the PNG for each page you want to discuss. Include both pages when a derivation crosses a page boundary. Upload availability and limits depend on the account. [ChatGPT file uploads](https://help.openai.com/en/articles/8555545-file-uploads-faq)
+3. Ask “Using the attachments, state the conditions under which this equation applies. Give the filename, physical page and source ID. Identify any symbol you cannot read.” For a follow-up, ask “Keep the other conditions fixed. If we double this parameter, which conclusions change?”
 
-课件原文每行以 │ 开头。项目已采纳且依据完全在本页的教材勘误另起一行，标为“原页勘误（代理核查）”。若某页提取不完整，先核对图片；课件数值互相冲突时，同时保留原文和按条件复算的值。物理页按原文件从 1 开始计数，可能与页脚号码不同。发给学生之前，维护者可以在 TXT 中检查本次包含的文件、页数和提取状态。
+The export prefixes each line of source wording with `│`. An accepted erratum supported entirely by that page appears on a separate line as an agent-checked source-page correction. Check the image when extraction is incomplete. If source values disagree, preserve the original wording alongside the result recalculated from the stated conditions. Physical page numbers start at 1 in the file and can differ from printed footers. Before sending files to a student, check the document list, page counts and extraction status in the TXT.
 
-维护者也可以在项目 Python 环境运行以下命令，一次准备多份指定讲义。每个文件加一个 `--document`，文档编号取自当前课程。输出路径须为新文件。在未指定文档的情况下，会选择该课程当前范围内的全部可见资料。
+## Export several documents
+
+In the configured project Python environment, repeat `--document` for each document ID in the current course and choose a new output filename. Omitting document IDs selects every visible document in the current course scope.
 
 ```powershell
 python -m examsage study-file --library data --course-id grt --document doc_e26a6e2870a11e4f9596b7cb --output groundwater-feedback.txt
 ```
 
-本地网页允许下载最大 16 MiB 的单页 PNG。原生插件在对话内返回图片的上限是 2 MiB。地下水的 23 张较大幻灯片已在网页处理器上逐页验证。
-
-本轮可直接打开七门课的问答、学习文件和原图（本地验收记录）。例如地球动力学第二讲第 17 页（本地验收记录）对应白板页脚 15。
+The local web download supports a single-page PNG up to 16 MiB. The native plugin limits images returned directly in the conversation to 2 MiB. The web handler was checked on 23 large groundwater slides. Maintainer-only records also cover exports and question sessions in seven courses. For example, physical page 17 in the second geodynamics lecture shows whiteboard footer 15.

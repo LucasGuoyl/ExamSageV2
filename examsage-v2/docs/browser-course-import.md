@@ -1,19 +1,19 @@
-# 从网页导入课件
+# Import course materials in the local web service
 
-打开本机押题宝，在页头点 **导入课件**。填写课程名称和学科，可分次选择不同目录里的文件，也可以移除选错的文件。网页支持 PDF、PPTX、UTF-8 的 TXT 和 MD，每次最多 24 份，整个上传请求限 64 MiB。
+Open the course import form in the header of the local ExamSage service. Enter the course name and discipline. Select files from one or more directories, removing any unwanted files before submission. One request accepts up to 24 PDF, PPTX, UTF-8 TXT or Markdown files within a 64 MiB upload limit.
 
-导入完成后，结果页显示物理页数、部分提取或提取失败的页数。**核查原页与提取状态** 打开课程阅读器，可逐页查看文字、限制、页码和文件哈希。**进入课程对话** 打开这门课的学习助手，可检查已有 ChatGPT 套餐连接并提问。建议收藏这两个地址。保存路径是项目下的 `data/course-imports/<导入编号>/`，其中 `draft` 可继续整理，`library` 可供课程工具读取。重启同一本机服务后可用原地址访问。
+The receipt reports the number of physical pages and the number partially extracted or unreadable. Open the source reader to inspect individual pages, extracted text, limitations and file hashes. Open the course conversation to check the ChatGPT plan connection and ask a question. Bookmark the reader and conversation addresses to use them again after restarting the same service.
 
-每次导入都有独立的课程编号、资料范围与对话范围。同名文件保留各自的来源。课程版本等未填信息保留为待补充。文件导入完成后，原始课件的学术审核状态为待核查。当前为本机单人入口，访问通过本机地址，云端学生登录和账号隔离尚待接入。已安装的桌面插件仍使用其原先登记的课程库。
+This developer web service saves each import under `data/course-imports/<import-id>/`. The `draft` subdirectory can be edited for another build, and `library` supplies the course tools. Each import receives its own course ID, authorized source set and conversation scope. Files with identical names remain distinguishable. Missing curriculum details stay unset and new content awaits academic review. The loopback service serves one local user. An existing desktop plugin continues to use its registered library. For the downloadable Windows student app and its storage location, see the [student guide](../../README.en.md).
 
-## 本轮学生活动
+## Historical acceptance cases
 
-| 轮次 | 操作 | 观察与修复 |
+| Round | Student activity | Result |
 | --- | --- | --- |
-| 27 | 从不同目录选同名课件，移除误选文件。对损坏 PDF 和合法长文件名测试导入。 | 同名文件保留两个文档编号。独立审查发现 Windows 长文件名可能残留临时文件、独立课程目录含中文时无法进入主页，两项均已复现并修复。 |
-| 28 | 导入 GRT 反馈 PDF 和概览 PPTX，查找反应前沿，再把两年改为五年。 | 实际导入 2 份共 10 页，10 页标为部分提取。两张 PDF 原图能读回。原页给出的比例 0.0086 和速度 800 m/yr 对应两年 13.76 m、五年 34.4 m。原稿另写 8.6 m/yr，算术冲突仍保留。修复原始资料库被显示为已整理课程的问题。 |
-| 29 | 查阅带跨文档注记的回答，再仅引用计算结果。 | 首次发现网页终答缺少核查提醒。补上提醒后，独立探针发现仅引计算时会丢失第二份依据。现在计算证据携带可见注记，网页可直接打开其另一份依据第 2 页。收窄来源会隐藏整条注记。 |
+| 27 | Select same-name files from different directories, remove a mistaken selection, and import a damaged PDF and a valid long filename. | The same-name files received independent document IDs. Review found two Windows defects involving leftover temporary files after a long filename and navigation in a course directory containing Chinese characters. Both were reproduced and fixed. |
+| 28 | Import a groundwater feedback PDF and an overview slide deck, then change a reaction-front calculation from two years to five. | The two files contained 10 pages, all marked partially extracted. Two original PDF images could be retrieved. The stated ratio of 0.0086 and speed of 800 m/year give 13.76 m over two years and 34.4 m over five. The source also gives 8.6 m/year, so the discrepancy remains visible. The course listing was corrected to identify a raw import accurately. |
+| 29 | Read a response citing a cross-document note, then cite only the calculation. | A missing review reminder and a lost second reference were fixed. Calculation evidence now carries the visible note and opens page 2 of its second source. Restricting either source hides the joint note. |
 
-网页聊天交互采用模拟 HTTP 响应测试，33 项通过，含实际点击第二份依据。导入表单测试覆盖分次选文件、移除、空选择、失败后重试和手机宽度。成功页使用实际本机导入收据回放并打开对应阅读器。GRT 两轮问答运行了实际课程取证、复算、历史组装和答案引用验证，回答文字由本次会话拟定。新课网页由现有套餐生成回答的联通验收待本机网页服务恢复。完整 pytest 在 Windows 的 socketpair 阶段超时。
+In that test round, 33 browser chat checks passed using simulated HTTP responses, including opening the second reference. Form tests covered selecting files in batches, removal, empty input, retry and a mobile viewport. A real local import receipt was replayed to open the corresponding reader. The groundwater exercises used live course retrieval, arithmetic, conversation assembly and citation verification, with answer wording supplied in the test conversation.
 
-实际样例可从本次导入的课程阅读器（本地验收记录）打开。问答取证记录（本地验收记录）和浏览器聊天回归（本地验收记录）可核对每一步结果。
+Those results describe the historical prototype. A Windows socket-pair timeout prevented a complete local pytest run at that stage, and live subscription-backed answers on the newly imported course awaited the local web service. The original receipts and browser evidence are kept with the maintainer's authorized course materials. [Current Windows student release checks](https://github.com/LucasGuoyl/ExamSageV2/actions/workflows/student-release.yml)

@@ -1,80 +1,86 @@
-# v2 数据与检索架构
+# Course data and evidence retrieval
 
-## 已落地的数据流
+ExamSage turns authorized files into versioned course snapshots. Each answer can point back to the document and physical page that support it. The data flow below shows the original five-course evidence browser and its pilot-specific extensions. The downloadable student app adds personal import, the study conversation and saved review pages. [Student app and current implementation](../README.md)
 
 ```mermaid
 flowchart LR
-    S[只读原始资料] --> M[审阅清单与哈希验证]
-    M --> I[原生解析与图片提取]
-    M --> P[离线 PowerPoint 完整静态渲染]
-    P --> H[源文件与逐页图像哈希验证]
+    S[Read-only originals] --> M[Reviewed manifest and hash checks]
+    M --> I[Native parsing and image extraction]
+    M --> P[Offline PowerPoint rendering]
+    P --> H[Verify source and rendered page hashes]
+    I --> A[Immutable assets and page records]
     H --> A
-    I --> A[不可变来源资产与页面账本]
-    A --> G[地下水逐页核查与四条跨页推导]
-    G --> D
-    A --> R[来源绑定的真题转录与原文保留]
-    R --> C[课程配置与真题小问解析]
-    C --> D[(版本化 SQLite 快照)]
-    A --> O[离线 OCR 与逐页图像分类导读]
-    O --> H2[源图和原文哈希绑定的补充记录]
+    A --> G[Groundwater page reviews and four cross-page derivations]
+    A --> R[Source-bound exam transcriptions]
+    R --> C[Course rules and subquestion parsing]
+    A --> O[Offline OCR and page-image annotations]
+    O --> H2[Supplement bound to image and text hashes]
+    H2 --> RC[Recovered blocks and unresolved items]
+    A --> CP[Cross-document derivations and explicit answer pairing]
+    CP --> SP[Nested questions with parent conditions]
+    SP --> NC[Recompute arithmetic and compare source values]
+    G --> D[(Versioned SQLite snapshots)]
+    C --> D
     H2 --> D
-    H2 --> RC[原图逐项恢复块与不确定项]
     RC --> D
-    A --> CP[跨文档推导与显式题答配对试点]
     CP --> D
-    CP --> SP[多级小问与完整父题上下文]
-    SP --> NC[受限算术复算与来源值比较]
     NC --> D
-    D --> F[FTS 中文双字索引、推导步骤与别名]
-    D --> V[可选独立嵌入索引]
-    F --> Q[范围过滤与检索合并]
+    D --> F[Full-text index with aliases and derivation steps]
+    D --> V[Optional independent embedding index]
+    F --> Q[Filter and combine results within the scope]
     V --> Q
-    Q --> T[六个只读 Agent 工具]
-    T --> API[本机只读 API]
-    API --> UI[课程证据浏览器]
-    D --> E[独立候选发布包]
-    L[五门课程配置与注册表] --> D
+    Q --> T[Six original read-only evidence tools]
+    T --> API[Local read-only API]
+    API --> UI[Course evidence browser]
+    D --> E[Independent publication candidate]
+    L[Five course configurations and registry] --> D
     L --> API
 ```
 
-## 数据契约
+## Records and snapshots
 
-Document 区分内容日期、教学年份与证据证明的可用时间。Page 保留文字、备注、可见性、视觉状态与缺口。Record 覆盖原文、概念、公式、案例、题目和答案，必须持有 SourceRef。Relation 保留来源及 explicit/inferred 状态。Scope 明确工作区、课程、快照、可用来源和时间过滤。
+- A `Document` distinguishes content date, teaching year and demonstrated availability. A `Page` records text, speaker notes, visibility, visual review and extraction gaps.
+- A `Record` represents a passage, concept, formula, example, question or answer and carries a `SourceRef`. A `Relation` records provenance and whether the relation is explicit or inferred.
+- A `Scope` names the workspace, course, snapshot, permitted sources and time filter.
 
-快照 ID 包含全部文档、结构化记录、关系和处理元数据的摘要。源文件或课程配置更新得到新快照；旧快照仍可读。缓存和快照是不同层：解析缓存复用未变化文件，发布事务建立完整快照。
+The snapshot ID digests the documents, structured records, relationships and processing metadata. Changes to a source or course configuration produce a new snapshot. Older snapshots remain readable. The parser cache reuses unchanged inputs. A publication transaction creates the complete versioned snapshot.
 
-真题转录必须匹配源文件 SHA-256、页码和原始片段。转录在页面副本上执行，不修改原页或原始文件；保留题干与公共题干的原始抽取，并检查题号和分值未改变。规则片段失效时构建失败，不能悄悄套用旧修正。转录规则摘要写入快照元数据。`agent_source_checked` 只表示代理对照了指定原页，不等同于独立专家验收。
+An exam transcription must match the source SHA-256, page and original excerpt. Rules apply to a copy of the page. The original question and shared parent prompt remain available, and the build checks that question numbers and marks are preserved. Stale transcription rules fail the build. Their digest is recorded in snapshot metadata. The label `agent_source_checked` records comparison with the specified original page by an agent. Independent academic review has a separate status.
 
-完整 PPTX 渲染也验证源文件哈希、页数、隐藏状态、PNG 尺寸与图像哈希。PowerPoint 仅在离线构建阶段运行，API 只读取验证后的 PNG。核查注记同时绑定源文件和图像哈希；图像变化不会沿用旧核查。原始文字单独保留。动画页只展示静态合成，UI 提醒下载原文件播放。
+Full-slide rendering verifies the source hash, slide count, hidden-slide status, PNG dimensions and image hashes. PowerPoint runs during offline preparation. The API serves verified PNGs. Review notes depend on the source and image hashes, so changed images require fresh review. Native text is retained separately. Animation is represented by a static composite. The original presentation is needed to replay its sequence.
 
-课程库将每门课挂载至独立路径，课程快照、授权来源、中文别名与搜索结果均由各自 Store 和 Scope 约束。GRT 使用专门配置；其余四门课使用 `source_pages` 模式，不套用 GRT 的六道大题和总分规则。批量构建的逐课错误写入报告，任一失败返回非零，并保留已有注册表；已成功构建的单课快照可以更新，这不是跨课事务。
+## Course isolation and publication
 
-## 查询约束
+Each course is mounted separately. Its store and scope constrain snapshots, allowed sources, Chinese search aliases and search results. Groundwater (GRT) has a dedicated configuration. The other four pilot courses use `source_pages` mode and their own assessment structures. A batch library build records per-course errors and returns a nonzero exit code if any course fails. The existing registry is retained, although an individual course that built successfully may have a new snapshot. This batch command does not provide a cross-course transaction.
 
-首先校验工作区、课程和快照。复合记录只有在所有引用来源均获许可时才可见。关系扩展同时验证两个端点与关系自身来源。隐藏内容和备注默认不参与学生检索。日期未知的资料在严格历史模式下不参加检索。
+Publication checks original files, complete slide images and supplemental images. The scoped export has its own database and assets. It includes records whose sources are authorized and whose parent-question context is complete, and retains processing metadata. Pilot and answer-pairing statistics are recomputed for the exported scope.
 
-关键词检索在 SQLite FTS5 索引执行。精确题号查询使用结构字段；课程内别名支持中文提问。可选向量库按快照和模型路由隔离。回答上下文按完整记录组织，小问必须携带父题，超出预算时省略整组并报告。
+## Retrieval and student visibility
 
-精确年份、题号或小问缺失时返回证据不足；不会用其他题替代。多年份请求检查每个指定年份的可用性。上下文保留题目原始抽取，支持学生对照转录。
+Validate workspace, course and snapshot before retrieval. A compound record is visible only when all referenced sources are authorized. Expanding a relationship verifies both endpoints and the relation's own references. Student search excludes hidden material and speaker notes by default. Strict historical queries exclude sources whose availability date is unknown.
 
-搜索结果不重复附带概念所引用的整页正文；结构化内容和来源引用保持完整，原页通过 get_source_page 按需读取。发布时仅保留授权来源内且父题上下文完整的记录及关系，并保留原始处理元数据。
+Keyword queries use SQLite FTS5, including Chinese character pairs, course aliases and derivation steps. Exact question numbers use structured fields. Optional embedding stores are isolated by snapshot and model route. Context is assembled from whole records. A subquestion and its parent conditions travel together. If the group exceeds the budget, the response reports the omitted group.
 
-原页模式保持文件级检索，显式试点可额外提供结构化记录。SES 题答配对验证来源哈希、文档类型、年份依据、题号、小问路径与双向文档身份；`a.b.ii` 等路径保留显式层级。年份加主题的检索限定同一年，学年依据来源标签解释。`get_question` 和 `get_answer` 返回全部父级；浏览器子级导航也保留公共题干。当前小问的完整复算、祖先条件与来源必须一起保留；相同题答核查只返回一次，父题的其他计算明确延后按需读取，整组仍超预算时省略并报告。
+If a requested year, question or part is missing, return insufficient evidence for that item. Check each requested year separately. The original question extraction is available for comparison with the transcription. Structured results carry references and do not repeat the entire source page for every concept. Fetch the full page on demand with `get_source_page`.
 
-数值核查仅允许受限 AST 算术、有限标量和指定数学函数；不执行任意 Python。构建重新计算表达式，保存 `computed_value` 与 `agrees/mismatch/not_reported`，忽略自报计算结果。算术比较和 `checked/source_conflict/partial` 内容核查状态独立，来源错误或物理假设不适用时可以算术一致而仍标记冲突。
+## Questions, answers and numerical checks
 
-题目上的联合核查也依赖配对答案来源。答案来源不在当前 Scope 内时，读取与导出均去除联合 audit、mapping_evidence 和来源警告。大题导读可能混有答案信息，因此受限读取改用绑定原始题卷页的 `source_question_text`；旧快照没有该字段时明确提示查看原题页。完整原快照保持不变，导出后再读取也保留安全题干。数量与可用标记按当前来源范围刷新。
+In `source_pages` mode, students can retrieve document pages. Explicit pilots add structured evidence. Sustainable Electrical Systems (SES) pairs questions and answers after checking source hashes, document types, year evidence, question number, subquestion path and the identities of both paired documents. A path such as `a.b.ii` retains its levels. A year-and-topic query stays within that year. The source label determines how an academic year is interpreted.
 
-低文本补充保留原生文字、OCR 候选、代理导读及逐项恢复块；OCR 置信度低于 70 时仍不索引其文字。恢复块有 text/equation/diagram/table 类型；未确定项必须对应 partially_legible 状态，不能清空不确定项以宣称完成。补充图像在导入、媒体接口、发布时校验哈希。中文双字索引与推导步骤进入 FTS；多张命中原页属于同一条推导时优先保留完整推导，避免只取零散结论。
+`get_question` and `get_answer` return all ancestors, and the browser retains the common prompt during child navigation. The requested part's complete calculation, inherited conditions and sources stay together. A shared question-and-answer audit is returned once. Other parent calculations are available on demand. Oversized groups are omitted with a notice.
 
-PDF 预览使用进程内互斥保护 PDFium，并先写临时 PNG 再原子替换，避免并发线程使渲染器退出或返回半写图像。发布包验证原文件、完整幻灯片和补充图像，按范围导出独立数据库及资产，并重新计算试点与配对元数据。
+Recalculation allows a restricted arithmetic syntax tree, finite scalar values and specified mathematical functions. The build recomputes the expression and records `computed_value` and a comparison of `agrees`, `mismatch` or `not_reported`. It ignores a self-reported computed result. Academic review independently uses `checked`, `source_conflict` or `partial`. Matching arithmetic alone cannot establish the physical assumptions or resolve a source error.
 
-## 质量边界
+A joint audit also depends on the answer source. When the scope excludes that source, reading and exporting remove the joint audit, `mapping_evidence` and its source warnings. A parent guide may include clues from the answer, so restricted responses use `source_question_text` bound to the original question page. An older snapshot lacking that field directs the student to the original paper. The original snapshot stays intact, and a restricted export preserves the safe question wording. Counts and availability indicators are refreshed for the active scope.
 
-文本导入、结构核验、来源核查、独立专家验收分别记载。当前课程解释与关系为候选状态。评测记录的“通过”表示来源页命中，不等于结论正确或考试预测有效。
+## Low-text pages and visual evidence
 
-浏览器只根据完整的转录元数据标记“原页核对转录”，普通公式备注不产生此标记。数学排版由本地 KaTeX 提供；表格由安全的文本节点构建。异步视图和原文预览使用请求序号，过期响应不能覆盖用户的新操作。
+Preserve native text, OCR candidates, agent guide notes and recovered blocks separately. OCR below confidence 70 is excluded from the searchable text. Recovered blocks identify text, equations, diagrams or tables. Unresolved items require `partially_legible` status. Import, media delivery and publication verify supplemental image hashes. When several matching pages belong to one derivation, retrieval gives the complete derivation priority over isolated fragments.
 
-## 后续扩展接口
+PDF previews serialize PDFium access using a process-local lock. The renderer writes a temporary PNG then replaces the destination atomically to protect concurrent readers. Browsers label a transcription as page-checked only when its requisite metadata is complete. An ordinary equation note does not trigger that label. Local KaTeX renders mathematics, and tables use safe text nodes. View updates and original-page previews use request sequence numbers so a stale response cannot replace a newer selection.
 
-云端可以保留领域契约，替换 Store 与资产存储实现，引入鉴权服务和持久作业执行器；Agent 控制循环调用同一只读工具，并逐步增加经评测的教学工具。通用课程发现与多模态抽取应生产候选 Record，经来源验证后进入新快照，不能直接覆写原文。
+## Interpreting results and extending the service
+
+The system separately records extraction, structural validation, source comparison and independent expert acceptance. Course interpretations and inferred relationships remain candidates pending academic review. A successful page-retrieval evaluation establishes that the expected page was found. Correctness of an academic conclusion or of an exam forecast requires its own evaluation.
+
+A hosted version could retain the data contracts while replacing local store and asset implementations, adding authentication and persistent job execution. A conversation agent can call the same scoped, read-only tools. Future course-discovery and multimodal extraction features should produce candidate records and validate their sources before publication in a new snapshot.

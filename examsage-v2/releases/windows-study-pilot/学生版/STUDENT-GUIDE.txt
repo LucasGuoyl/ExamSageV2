@@ -1,0 +1,58 @@
+ExamSage student kit for Windows
+
+START STUDYING
+
+1. Sign in to the official Codex desktop app on Windows with your ChatGPT account. ExamSage uses the Python runtime supplied with Codex, including Tk, Pydantic v2, pypdf, Pillow and pypdfium2. Your account's available Codex allowance covers model answers. You do not need to configure an API key.
+
+2. Extract the entire ExamSage-Study-Windows.zip to a folder you can write to. Double-click Start ExamSage.bat. The student app opens in the local browser. Choose English or Chinese in the sidebar. Previously imported courses are available under the same Windows account.
+
+3. Choose Open spring example to try the included two-page lesson. Ask "What are the original stiffness and load? Find the extension, citing the assumptions page and the calculation page." Page 1 of lesson.txt gives 200 N/m and 10 N. Page 2 gives 0.05 m. In the same conversation, ask "Keep the assumptions and change the force to 20 N." Check the revised result of 0.10 m on page 2.
+
+4. For your own course, choose Import materials. Select one course's PDFs, PowerPoint slides (.pptx), plain text (.txt) or Markdown (.md). Enter the course name and subject and choose each file's role. You can distinguish official past papers, mock papers and answer keys. Enter the corresponding exam year when known. A single import accepts up to 24 files totalling 64 MiB.
+
+ASK QUESTIONS AND OPEN SOURCES
+
+Type a course question in the box at the bottom. Ctrl+Enter or the up arrow sends it. Enter adds a line break. You can stop a response in progress and ask a follow-up in the same box. The sidebar lets you switch courses or conversations or start a new conversation.
+
+Use Sources for this question to see which points cite which past papers and lecture notes. Select Compare sources beside one part of the answer to see its direct references and related leads. A past-paper card shows the verified question number, recorded exam year and file page when available. Open a card or page number to read the source. Return to the source comparison to switch between the exam and lecture evidence. If only lecture evidence is available, the exam section reports the search result.
+
+Original PDF images and available full-slide renderings can be opened and enlarged. On a narrow screen, select a page number to read, then close the reader to return to the conversation. Alt+R opens the reader. Alt+Q returns to the question box. The ChatGPT plan indicator beside an answer means that turn passed the subscription check.
+
+REVIEW NEXT TIME
+
+On an original page, choose Add to course review. Reopen Start ExamSage.bat under the same Windows account. In Course review, select a page and try recalling or typing your answer. Choose Reveal source page and compare it with what you remembered. You can edit the practice question and select Practise again or Mark as learned. The question and your self-assessment are saved for this course. The answer draft is kept for the current card session.
+
+QUESTIONS TO TRY
+
+"Which courses have I imported? Find the original wording for this concept. Give the filename and page."
+
+"Using past official papers, suggest a revision order. Which years are represented? How many questions lack topic labels? Give an example with its page."
+
+"Give me one multiple-choice question from this paper. Wait for my answer before explaining the options and showing the matching handbook page."
+
+"In the history example, which claim does the declaration itself support? What other sources would we need to establish what actually happened?"
+
+For papers without printed topic headings, ask for a breakdown by numbered subquestion with a short quotation, year, filename and page. You can request a cutoff such as papers before 2025. The assistant can propose classifications from the wording and explain which ones need a teacher's review. Similar-looking questions may test different skills. These proposed labels stay in the conversation.
+
+READING LIMITS
+
+File pages count from the beginning of the supplied file. They may differ from printed page numbers. PDF page images, extracted slide text, embedded images and full-slide renderings have distinct availability. Check the status returned for that source. A newly imported page or proposed pairing still needs academic review. A practice example illustrates a teaching point. Evidence of an official answer or the scope of a future exam must come from the relevant course or examiner.
+
+ACCOUNT AND STORAGE
+
+Courses, chat history and review progress are stored in %LOCALAPPDATA%\ExamSage\student-workspaces. People who share a Windows login share that student space. When you ask a question, the official Codex host sends the question, conversation context and relevant course excerpts to ChatGPT. If the sign-in or available plan usage cannot be verified, or usage is exhausted, the window explains the problem and stops. Back up local student data using your normal Windows backup process.
+
+OPTIONAL CODEX PLUGINS
+
+The Start ExamSage.bat launcher opens the study app directly. Use the following steps if you also want course tools in a native Codex chat.
+
+1. Keep the entire extracted folder. Run Register Student Plugins.bat. It prepares the personal-course and four-subject demo plugins and registers the local student marketplace with Codex.
+2. In the Codex plugin directory, select the ExamSage student marketplace and install and enable the personal-course and demo-course plugins. Fully exit and reopen Codex if the tools do not appear in the current chat.
+3. Run Import Course Files.bat to add materials through the plugin workflow. Import one course at a time with the same file limits and role/year labels described above.
+4. When moving to another computer, prepare and register the kit again on that computer. The generated marketplace records the interpreter location for that installation. Older registered directories may retain their previous display names. The student pack uses marketplace ID examsage-student. To replace an old registration that points elsewhere, uninstall its two student plugins in Codex, remove that marketplace with "codex plugin marketplace remove examsage-student", then extract the new ZIP to a new folder and register it. Registering a kit on the same machine uses the existing local student workspace.
+
+The 0.6.4 student plugin supports explicit English and Chinese exam headings. Course pages and quotes preserve the imported originals. The English interface can therefore display source material in another language.
+
+Project and latest Windows release checks
+https://github.com/LucasGuoyl/ExamSageV2
+https://github.com/LucasGuoyl/ExamSageV2/actions/workflows/student-release.yml

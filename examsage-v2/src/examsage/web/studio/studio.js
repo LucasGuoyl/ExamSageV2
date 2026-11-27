@@ -68,6 +68,13 @@ if (entry) {
   history.replaceState(null, '', location.pathname);
 }
 const capability = entry || sessionStorage.getItem('studio-entry') || '';
+$('language').value = studyLanguage;
+$('language').onchange = () => {
+  if (state && $('question').value) {
+    sessionStorage.setItem('studio-language-draft', JSON.stringify([draftKey(), $('question').value]));
+  }
+  location.assign($('language').value === 'en' ? '/en/' : '/zh/');
+};
 let state = null,
   pending = false,
   pollTimer,
@@ -97,6 +104,7 @@ async function api(action, fields = {}) {
     },
     body: JSON.stringify({
       action,
+      language: studyLanguage,
       revision: state?.revision,
       course_id: state?.course_id,
       session_id: state?.session_id,
@@ -105,7 +113,7 @@ async function api(action, fields = {}) {
   });
   const data = await r.json();
   if (!r.ok) {
-    const e = new Error(data.error || '请求失败，请重试。');
+    const e = new Error(serviceError(data.error, data.code) || ui('请求失败，请重试。'));
     e.status = r.status;
     e.code = data.code;
     throw e;
@@ -113,13 +121,13 @@ async function api(action, fields = {}) {
   return data;
 }
 async function report(error) {
-  feedback(error.message || '连接中断，请重新打开学习窗口。');
+  feedback(error.message || ui('连接中断，请重新打开学习窗口。'));
   if (error.status === 409) {
     try {
       await refresh(await api('state'));
-      feedback('对话已同步，请核对课程后重试。');
+      feedback(ui('对话已同步，请核对课程后重试。'));
     } catch {
-      feedback('无法同步，请重新打开学习窗口。');
+      feedback(ui('无法同步，请重新打开学习窗口。'));
     }
   }
 }
@@ -152,11 +160,11 @@ function controls() {
   $('sample').disabled = locked || !state;
   $('question').readOnly = pending;
   $('question').disabled = !course;
-  $('question').placeholder = course ? '问一个课程问题…' : '先选择或导入一门课程…';
+  $('question').placeholder = course ? ui('问一个课程问题…') : ui('先选择或导入一门课程…');
   const send = $('send');
   send.disabled = pending || !busy && (!course || !$('question').value.trim());
   send.replaceChildren(icon(busy ? 'stop' : 'up'));
-  send.title = busy ? '停止回答' : '发送问题';
+  send.title = busy ? ui('停止回答') : ui('发送问题');
   send.setAttribute('aria-label', send.title);
 }
 function noteDraft() {
@@ -164,10 +172,10 @@ function noteDraft() {
 }
 function showCurrentNav() {
   const current = state.courses.find(c => c.slug === state.course_id);
-  $('courseName').textContent = current?.name || '课程问答';
+  $('courseName').textContent = current?.name || ui('课程问答');
   const list = $('courses');
   list.replaceChildren();
-  if (!current) list.append(new Option(state.courses.length ? '选择课程' : '暂无课程', '', true, true));
+  if (!current) list.append(new Option(state.courses.length ? ui('选择课程') : ui('暂无课程'), '', true, true));
   state.courses.forEach(c => list.add(new Option(c.name, c.slug, false, c.slug === state.course_id)));
   const sessions = $('sessions');
   sessions.replaceChildren();
@@ -175,15 +183,15 @@ function showCurrentNav() {
     const b = button('', 'session', () => change('session', {
       id: s.id
     }), 'chat');
-    const t = s.title || '未命名对话';
+    const t = s.title || ui('未命名对话');
     b.append(el('span', '', t));
     b.title = t;
     b.setAttribute('aria-current', String(s.id === state.session_id));
     sessions.append(b);
   }
-  if (!state.sessions.length) sessions.append(el('p', 'empty-nav', '提问后，对话会保存在这里。'));
+  if (!state.sessions.length) sessions.append(el('p', 'empty-nav', ui('提问后，对话会保存在这里。')));
 }
-function emptyReader(title = '选择回答中的要点', description = '点「对照出处」查看相关考题、讲义和原文。') {
+function emptyReader(title = ui('选择回答中的要点'), description = ui('点「对照出处」查看相关考题、讲义和原文。')) {
   const box = el('div', 'reader-empty'),
     art = el('span', 'art');
   art.append(icon('book'));
@@ -230,12 +238,12 @@ function welcome() {
   const has = !!state.course_id,
     w = el('div', 'welcome'),
     options = el('div', 'suggests');
-  w.append(mark(), el('h1', '', has ? '从哪道题开始？' : '打开你的第一门课'), el('p', '', has ? '边提问，边对照课件。也可以从下面的问题开始。' : '用自己的课件提问，或先用两页弹簧课件试一遍。'));
+  w.append(mark(), el('h1', '', has ? ui('从哪道题开始？') : ui('打开你的第一门课')), el('p', '', has ? ui('边提问，边对照课件。也可以从下面的问题开始。') : ui('用自己的课件提问，或先用两页弹簧课件试一遍。')));
   if (!has) {
-    options.append(button('试用弹簧课件', 'primary', () => change('example'), 'book'), button('导入我的课件', 'suggest', openImport, 'upload'));
+    options.append(button(ui('试用弹簧课件'), 'primary', () => change('example'), 'book'), button(ui('导入我的课件'), 'suggest', openImport, 'upload'));
   } else {
-    const spring = state.courses.find(c => c.slug === state.course_id)?.name === '物理示例 · 线性弹簧';
-    const prompts = spring ? ['拉力为 10 N 时，弹簧伸长多少？', '胡克定律有哪些适用条件？'] : ['解释课件中的一个核心概念', '用课件里的例子带我做一道题'];
+    const spring = ['物理示例 · 线性弹簧', 'Physics example · Linear spring'].includes(state.courses.find(c => c.slug === state.course_id)?.name);
+    const prompts = spring ? [ui('拉力为 10 N 时，弹簧伸长多少？'), ui('胡克定律有哪些适用条件？')] : [ui('解释课件中的一个核心概念'), ui('用课件里的例子带我做一道题')];
     for (const q of prompts) options.append(button(q, 'suggest', () => {
       $('question').value = q;
       noteDraft();
@@ -253,7 +261,7 @@ function inlineQuote(ref, data) {
   if (!raw) return;
   const block = el('blockquote', 'inline-quote'),
     label = el('div', 'quote-label');
-  label.append(icon('quote'), data.filename + ' · 第 ' + data.cited_page + ' 页' + (data.highlight ? ' · 引用原句' : ' · 页首节选'));
+  label.append(icon('quote'), data.filename + ui(' · 第 ') + data.cited_page + ui(' 页') + (data.highlight ? ui(' · 引用原句') : ui(' · 页首节选')));
   block.append(label, el('p', '', raw.length > 240 ? raw.slice(0, 240) + '…' : raw));
   (ref.point?.node || ref.article).append(block);
 }
@@ -270,41 +278,41 @@ function paintPage(data) {
     tile = el('span', 'doc-icon'),
     meta = el('div');
   tile.append(icon('doc'));
-  meta.append(el('strong', '', data.filename), el('small', '', data.page !== data.cited_page ? '正在浏览相邻页' : selection.item?.relationship === 'related' ? '关联资料原页' : '本段引用原页'));
+  meta.append(el('strong', '', data.filename), el('small', '', data.page !== data.cited_page ? ui('正在浏览相邻页') : selection.item?.relationship === 'related' ? ui('关联资料原页') : ui('本段引用原页')));
   doc.append(tile, meta);
   const paper = el('article', 'paper'),
     bar = el('div', 'paper-bar');
-  bar.append(el('span', '', '第 ' + data.page + ' 页'), el('span', '', imageMode && data.png ? '原图' : '原文'));
+  bar.append(el('span', '', ui('第 ') + data.page + ui(' 页')), el('span', '', imageMode && data.png ? ui('原图') : ui('原文')));
   paper.append(bar);
   if (imageMode && data.png) {
     const img = el('img', 'page-image');
     img.src = 'data:image/png;base64,' + data.png;
-    img.alt = data.filename + ' 第 ' + data.page + ' 页原图';
+    img.alt = data.filename + ui(' 第 ') + data.page + ui(' 页原图');
     paper.append(img);
   } else {
     const text = el('div', 'page-text'),
       raw = data.text || '',
       quote = data.highlight || '',
       i = quote ? raw.indexOf(quote) : -1;
-    if (i >= 0) text.append(raw.slice(0, i), el('mark', '', quote), raw.slice(i + quote.length));else text.textContent = raw || '这一页没有可提取的文字。';
+    if (i >= 0) text.append(raw.slice(0, i), el('mark', '', quote), raw.slice(i + quote.length));else text.textContent = raw || ui('这一页没有可提取的文字。');
     paper.append(text);
-    if (imageMode && data.image_reason) paper.append(el('p', 'notes', '原图暂时无法显示，已保留本页原文。'));
+    if (imageMode && data.image_reason) paper.append(el('p', 'notes', ui('原图暂时无法显示，已保留本页原文。')));
   }
   const actions = el('div', 'reader-actions');
   const savePage = reviewBookmark(data, selection.point?.answer.question || '');
   actions.append(savePage);
-  if (data.image_supported) actions.append(button(imageMode ? '查看文字' : '查看原图', 'quiet', () => openPage(selection, {
+  if (data.image_supported) actions.append(button(imageMode ? ui('查看文字') : ui('查看原图'), 'quiet', () => openPage(selection, {
     page: data.page,
     image: !imageMode
   })));
-  if (imageMode && data.png) actions.append(button('放大原图', 'quiet', event => {
+  if (imageMode && data.png) actions.append(button(ui('放大原图'), 'quiet', event => {
     const zoom = paper.classList.toggle('zoom');
-    event.currentTarget.textContent = zoom ? '适应宽度' : '放大原图';
+    event.currentTarget.textContent = zoom ? ui('适应宽度') : ui('放大原图');
   }));
-  if (data.page !== data.cited_page) actions.append(button('返回引用页', 'quiet', () => openPage(selection, {
+  if (data.page !== data.cited_page) actions.append(button(ui('返回引用页'), 'quiet', () => openPage(selection, {
     page: data.cited_page
   })));
-  if (selection) actions.append(button('定位到回答', 'quiet', () => {
+  if (selection) actions.append(button(ui('定位到回答'), 'quiet', () => {
     const target = selectedAnchor?.isConnected ? selectedAnchor : activePoint?.action || selection.trigger;
     if (slim()) reader(false);
     target?.scrollIntoView({
@@ -316,7 +324,7 @@ function paintPage(data) {
   }, 'chat'));
   if (activePoint) {
     const returning = selection;
-    const back = button('返回出处对照', 'map-back', () => returning.fromOverview ? showOverview(returning.point.answer, {
+    const back = button(ui('返回出处对照'), 'map-back', () => returning.fromOverview ? showOverview(returning.point.answer, {
       reveal: true
     }) : selectPoint(activePoint, {
       focusBoard: true
@@ -328,7 +336,7 @@ function paintPage(data) {
   area.scrollTop = 0;
   locateQuote(area);
   $('readerFoot').hidden = false;
-  $('pageCount').textContent = '第 ' + data.page + ' / ' + data.pages + ' 页';
+  $('pageCount').textContent = ui('第 ') + data.page + ' / ' + data.pages + ui(' 页');
   $('prev').disabled = !data.can_previous;
   $('next').disabled = !data.can_next;
 }
@@ -353,7 +361,7 @@ async function openPage(ref, {
     b.setAttribute('aria-pressed', String(selected));
   });
   if (changed) document.querySelectorAll('.inline-quote').forEach(e => e.remove());
-  emptyReader('正在打开原页…', '');
+  emptyReader(ui('正在打开原页…'), '');
   if (reveal) {
     readerPreference = true;
     reader(true, slim());
@@ -387,34 +395,34 @@ async function openPage(ref, {
     if (data.page === data.cited_page && ref.item?.relationship !== 'related') inlineQuote(ref, data);
   } catch (e) {
     if (seq === readSequence) {
-      emptyReader('未能打开课件', e.message);
+      emptyReader(ui('未能打开课件'), e.message);
       if (e.status === 409) await report(e);
     }
   }
 }
 const pointNames = {
-  source: '原文解读',
-  derivation: '推导',
-  assumption: '前提',
-  insufficient: '证据不足'
+  source: ui('原文解读'),
+  derivation: ui('推导'),
+  assumption: ui('前提'),
+  insufficient: ui('证据不足')
 };
 const materialNames = {
-  exam: '真题',
-  lecture: '讲义',
-  textbook: '教材',
-  exam_solution: '试卷答案',
-  mock_exam: '模拟卷',
-  practice: '练习',
-  formula_sheet: '公式表',
-  tutorial_feedback: '习题反馈',
-  exam_guidance: '考试说明',
-  primary_source: '原始文献',
-  literary_text: '文学文本',
-  assessment_rubric: '评分标准',
-  unknown: '其他资料'
+  exam: ui('真题'),
+  lecture: ui('讲义'),
+  textbook: ui('教材'),
+  exam_solution: ui('试卷答案'),
+  mock_exam: ui('模拟卷'),
+  practice: ui('练习'),
+  formula_sheet: ui('公式表'),
+  tutorial_feedback: ui('习题反馈'),
+  exam_guidance: ui('考试说明'),
+  primary_source: ui('原始文献'),
+  literary_text: ui('文学文本'),
+  assessment_rubric: ui('评分标准'),
+  unknown: ui('其他资料')
 };
 function pointName(point) {
-  return '要点 ' + (point.index + 1) + ' · ' + (pointNames[point.kind] || '回答');
+  return ui('要点 ') + (point.index + 1) + ' · ' + (pointNames[point.kind] || ui('回答'));
 }
 function markPoint(point) {
   if (activePoint !== point) {
@@ -428,11 +436,11 @@ function markPoint(point) {
 function boardTabs(answer, point, overview) {
   const tabs = el('div', 'source-tabs');
   tabs.setAttribute('role', 'group');
-  tabs.setAttribute('aria-label', '对照范围');
-  const all = button('本题总览', '', () => showOverview(answer, {
+  tabs.setAttribute('aria-label', ui('对照范围'));
+  const all = button(ui('本题总览'), '', () => showOverview(answer, {
     reveal: true
   }));
-  const one = button('要点对照', '', () => selectPoint(point, {
+  const one = button(ui('要点对照'), '', () => selectPoint(point, {
     reveal: true
   }));
   all.setAttribute('aria-pressed', String(overview));
@@ -478,7 +486,7 @@ async function showOverview(answer, {
     readerPreference = true;
     reader(true, slim());
   }
-  emptyReader('正在整理本题引用…', '');
+  emptyReader(ui('正在整理本题引用…'), '');
   try {
     const data = await api('answer_sources', {
       run_id: answer.run
@@ -494,12 +502,12 @@ async function showOverview(answer, {
       return;
     }
     const board = el('section', 'answer-overview');
-    board.setAttribute('aria-label', '本题出处总览');
+    board.setAttribute('aria-label', ui('本题出处总览'));
     board.append(boardTabs(answer, autoPoint || answer.points[0], true));
     const head = el('div', 'overview-intro');
-    head.append(el('h2', '', '本题引用'), el('p', '', answer.question));
+    head.append(el('h2', '', ui('本题引用')), el('p', '', answer.question));
     board.append(head);
-    for (const [key, title, symbol] of [['exam', '历年真题', 'compose'], ['lecture', '课程讲义', 'book'], ['other', '其他资料', 'stack']]) {
+    for (const [key, title, symbol] of [['exam', ui('历年真题'), 'compose'], ['lecture', ui('课程讲义'), 'book'], ['other', ui('其他资料'), 'stack']]) {
       const entries = locations.filter(({
         item
       }) => sourceGroup(item) === key);
@@ -510,7 +518,7 @@ async function showOverview(answer, {
       heading.append(icon(symbol), title, el('small', '', String(entries.length)));
       heading.setAttribute('aria-label', title);
       section.append(heading);
-      if (!entries.length) section.append(el('p', 'group-empty', '本题回答未直接引用' + title + '。'));
+      if (!entries.length) section.append(el('p', 'group-empty', ui('本题回答未直接引用') + title + '。'));
       for (const {
         item,
         point,
@@ -519,9 +527,9 @@ async function showOverview(answer, {
         const row = el('div', 'overview-entry'),
           card = makeSourceCard(point, item, true);
         const jump = el('div', 'jump-points');
-        jump.append(el('span', '', '对应回答'));
+        jump.append(el('span', '', ui('对应回答')));
         for (const p of where.keys()) {
-          jump.append(button('要点 ' + (p.index + 1), 'jump-point', () => {
+          jump.append(button(ui('要点 ') + (p.index + 1), 'jump-point', () => {
             p.node.scrollIntoView({
               block: 'center'
             });
@@ -544,7 +552,7 @@ async function showOverview(answer, {
     });
   } catch (e) {
     if (seq !== readSequence) return;
-    if (e.status === 409) await report(e);else emptyReader('无法整理本题出处', e.message);
+    if (e.status === 409) await report(e);else emptyReader(ui('无法整理本题出处'), e.message);
   }
 }
 function sourceGroup(item) {
@@ -579,7 +587,7 @@ async function openPointCitation(point, ref, trigger) {
   selection = pageData = null;
   readerPreference = true;
   reader(true, slim());
-  emptyReader('正在打开原页…', '');
+  emptyReader(ui('正在打开原页…'), '');
   try {
     if (!point.directItems) {
       const data = await api('answer_sources', {
@@ -589,18 +597,18 @@ async function openPointCitation(point, ref, trigger) {
       point.directItems = data.paragraphs.find(row => row.paragraph_index === point.index)?.items || [];
     }
     const item = point.directItems.find(it => it.evidence_id === ref.id && it.ref_index === ref.index);
-    if (!item) throw new Error('这条引文在当前课程中无法核验。');
+    if (!item) throw new Error(ui('这条引文在当前课程中无法核验。'));
     showItem(point, item, false, trigger);
   } catch (e) {
     if (seq !== readSequence) return;
-    if (e.status === 409) await report(e);else emptyReader('未能打开这条引文', e.message);
+    if (e.status === 409) await report(e);else emptyReader(ui('未能打开这条引文'), e.message);
   }
 }
 function sourceLine(item) {
-  const meta = [materialNames[item.kind] || '其他资料'];
+  const meta = [materialNames[item.kind] || ui('其他资料')];
   if (item.exam_year) meta.push(String(item.exam_year));
   if (item.question) meta.push(item.question);
-  meta.push('第 ' + item.page + ' 页');
+  meta.push(ui('第 ') + item.page + ui(' 页'));
   return meta.join(' · ');
 }
 function showItem(point, item, fromOverview = false, trigger = point.action) {
@@ -621,22 +629,22 @@ function showItem(point, item, fromOverview = false, trigger = point.action) {
 function makeSourceCard(point, item, fromOverview = false) {
   const card = button('', 'source-card', () => showItem(point, item, fromOverview));
   const top = el('span', 'source-card-head');
-  const relationship = item.relationship === 'cited' ? '回答引用' : '关联线索';
+  const relationship = item.relationship === 'cited' ? ui('回答引用') : ui('关联线索');
   top.append(el('strong', 'source-location', sourceLine(item)), el('span', 'relation-label', relationship));
   const file = el('span', 'source-file');
   file.append(icon('doc'), el('span', '', item.filename), icon('right'));
   card.append(top, file);
   if (item.quote) card.append(el('span', 'card-quote', previewQuote(item, point)));
-  if (item.basis && (item.relationship === 'related' || !['本段回答标注的出处', '本段计算引用的原页'].includes(item.basis))) card.append(el('span', 'relation-basis', item.basis));
-  if (!item.quote) card.append(el('span', 'relation-basis', '展开原页核查'));
+  if (item.basis && (item.relationship === 'related' || !['本段回答标注的出处', '本段计算引用的原页'].includes(item.basis))) card.append(el('span', 'relation-basis', relationLabel(item.basis)));
+  if (!item.quote) card.append(el('span', 'relation-basis', ui('展开原页核查')));
   return card;
 }
 function renderBoard(point, data, focusBoard) {
   const board = el('section', 'mapping-board');
-  board.setAttribute('aria-label', '当前要点的出处对照');
+  board.setAttribute('aria-label', ui('当前要点的出处对照'));
   const context = el('div', 'point-context');
   const line = el('div', 'context-head');
-  line.append(el('strong', '', pointName(point)), button('定位到回答', 'locate-point', () => {
+  line.append(el('strong', '', pointName(point)), button(ui('定位到回答'), 'locate-point', () => {
     if (slim()) reader(false);
     point.action.focus({
       preventScroll: true
@@ -650,7 +658,7 @@ function renderBoard(point, data, focusBoard) {
   rich(excerpt, point.text);
   context.append(excerpt);
   board.append(boardTabs(point.answer, point, false), context);
-  const groups = [['exam', '历年真题', '本段暂未定位到对应真题。', 'compose'], ['lecture', '课程讲义', '本段暂未定位到对应讲义或教材。', 'book'], ['other', '其他资料', '', 'stack']];
+  const groups = [['exam', ui('历年真题'), ui('本段暂未定位到对应真题。'), 'compose'], ['lecture', ui('课程讲义'), ui('本段暂未定位到对应讲义或教材。'), 'book'], ['other', ui('其他资料'), '', 'stack']];
   for (const [key, title, empty, symbol] of groups) {
     const items = data.items.filter(item => sourceGroup(item) === key);
     if (!items.length && !empty) continue;
@@ -666,14 +674,14 @@ function renderBoard(point, data, focusBoard) {
     if (items.length > 1) {
       const rest = el('details', 'more-sources');
       rest.open = false;
-      rest.append(el('summary', '', '其余 ' + (items.length - 1) + ' 条出处'));
+      rest.append(el('summary', '', ui('其余 ') + (items.length - 1) + ui(' 条出处')));
       for (const item of items.slice(1)) rest.append(makeSourceCard(point, item));
       section.append(rest);
     }
     board.append(section);
   }
   if (data.items.some(item => item.relationship === 'related')) {
-    board.append(el('p', 'coverage-note', '另列最多 8 条可核对的关联线索。'));
+    board.append(el('p', 'coverage-note', ui('另列最多 8 条可核对的关联线索。')));
   }
   $('readerBody').replaceChildren(board);
   $('readerBody').scrollTop = 0;
@@ -687,7 +695,7 @@ function renderBoard(point, data, focusBoard) {
     document.querySelectorAll('.inline-quote').forEach(node => node.remove());
     const quote = el('blockquote', 'inline-quote');
     const label = el('div', 'quote-label');
-    label.append(icon('quote'), sourceLine(item) + ' · 引用原文');
+    label.append(icon('quote'), sourceLine(item) + ui(' · 引用原文'));
     quote.append(label, el('p', '', previewQuote(item, point)));
     point.node.append(quote);
   }
@@ -712,7 +720,7 @@ async function selectPoint(point, {
     readerPreference = true;
     reader(true, slim());
   }
-  emptyReader('正在核对本段出处…', '');
+  emptyReader(ui('正在核对本段出处…'), '');
   try {
     const data = await api('paragraph_sources', {
       run_id: point.run,
@@ -723,7 +731,7 @@ async function selectPoint(point, {
     renderBoard(point, data, focusBoard);
   } catch (e) {
     if (seq !== readSequence) return;
-    if (e.status === 409) await report(e);else emptyReader('无法读取这段的出处', e.message);
+    if (e.status === 409) await report(e);else emptyReader(ui('无法读取这段的出处'), e.message);
   }
 }
 function answerBlock(msg, question) {
@@ -732,8 +740,8 @@ function answerBlock(msg, question) {
     name = el('div', 'byline'),
     av = el('span', 'assistant-mark');
   av.append(icon('spark'));
-  name.append(av, '押题宝');
-  if (a.subscription_verified) name.append(el('small', '', '· ChatGPT 套餐'));
+  name.append(av, ui('押题宝'));
+  if (a.subscription_verified) name.append(el('small', '', ui('· ChatGPT 套餐')));
   article.append(name);
   const refs = [],
     points = [],
@@ -745,7 +753,7 @@ function answerBlock(msg, question) {
     points
   };
   if (a.paragraphs?.length) {
-    view.action = button('本题出处总览', 'overview-action', () => showOverview(view, {
+    view.action = button(ui('本题出处总览'), 'overview-action', () => showOverview(view, {
       reveal: true
     }), 'stack');
     name.append(view.action);
@@ -769,7 +777,7 @@ function answerBlock(msg, question) {
       used.add(ref);
       if (ref.calc && direct.has(JSON.stringify([ref.doc, ref.page]))) continue;
       const same = items.some(other => other !== ref && other.page === ref.page && (!other.calc || !direct.has(JSON.stringify([other.doc, other.page]))));
-      const label = '第 ' + ref.page + ' 页' + (same ? ' · ' + ref.id + ref.part : '');
+      const label = ui('第 ') + ref.page + ui(' 页') + (same ? ' · ' + ref.id + ref.part : '');
       const b = button(label, 'cite', () => {
         if (point) {
           openPointCitation(point, ref, b);
@@ -805,10 +813,10 @@ function answerBlock(msg, question) {
       refs: items
     };
     const head = el('div', 'point-head');
-    const action = button('对照出处', 'point-action', () => selectPoint(point, {
+    const action = button(ui('对照出处'), 'point-action', () => selectPoint(point, {
       reveal: true
     }), 'panel');
-    action.setAttribute('aria-label', pointName(point) + '，对照出处');
+    action.setAttribute('aria-label', pointName(point) + ui('，对照出处'));
     action.setAttribute('aria-pressed', 'false');
     action.setAttribute('aria-controls', 'reader');
     point.action = action;
@@ -828,22 +836,22 @@ function answerBlock(msg, question) {
   const extra = refs.filter(r => !used.has(r));
   if (extra.length) {
     const details = el('details', 'notes'),
-      title = el('summary', '', points.length ? '本轮其他检索资料' : '本轮保存的引用');
+      title = el('summary', '', points.length ? ui('本轮其他检索资料') : ui('本轮保存的引用'));
     details.append(title);
     appendLinks(details, extra, null);
     article.append(details);
   }
   const diagnostics = {
-    'page_visuals_not_verified': '试卷原页的图表和版面仍需对照原图。',
-    'visual_layout_not_verified': '讲义的图文位置仍需对照原页。',
-    'embedded_equations_may_require_visual_review': '讲义里的嵌入公式建议打开原图核对。',
-    'Semantic content not independently reviewed.': '课件解析内容尚未经过独立学术核查。',
-    'Embeddings are not configured; indexed keyword and course-alias retrieval is active.': '本次使用关键词和课程别名检索。',
-    '请一次指定一个明确的题号或小问编号。': '查找试卷题目时，可提供题号或小问编号。',
-    '计算由受限算术工具复算；公式适用性和单位解释仍需核对。': '计算工具已复算数值；公式前提和单位仍需核对。'
+    'page_visuals_not_verified': ui('试卷原页的图表和版面仍需对照原图。'),
+    'visual_layout_not_verified': ui('讲义的图文位置仍需对照原页。'),
+    'embedded_equations_may_require_visual_review': ui('讲义里的嵌入公式建议打开原图核对。'),
+    'Semantic content not independently reviewed.': ui('课件解析内容尚未经过独立学术核查。'),
+    'Embeddings are not configured; indexed keyword and course-alias retrieval is active.': ui('本次使用关键词和课程别名检索。'),
+    '请一次指定一个明确的题号或小问编号。': ui('查找试卷题目时，可提供题号或小问编号。'),
+    '计算由受限算术工具复算；公式适用性和单位解释仍需核对。': ui('计算工具已复算数值；公式前提和单位仍需核对。')
   };
   const details = el('details', 'notes');
-  details.append(el('summary', '', '回答说明'));
+  details.append(el('summary', '', ui('回答说明')));
   for (const n of a.limitations || []) {
     if (Object.hasOwn(diagnostics, n)) details.append(el('p', '', diagnostics[n]));else article.append(el('p', 'academic-note', n));
   }
@@ -865,7 +873,7 @@ function transcript() {
     flow.append(welcome());
     return null;
   }
-  flow.append(el('h1', 'sr', '课程对话'));
+  flow.append(el('h1', 'sr', ui('课程对话')));
   for (const msg of state.messages) {
     if (msg.role === 'user') {
       question = msg.content;
@@ -922,7 +930,7 @@ async function change(action, fields = {}) {
     }
     nav(false);
     await refresh(next);
-    if (next.run_id) feedback('正在查阅课程资料并生成回答…');else if (next.run?.error) feedback(next.run.error.message || '本轮未完成。');else if (next.run?.status === 'cancelled') feedback('已停止回答。');
+    if (next.run_id) feedback(ui('正在查阅课程资料并生成回答…'));else if (next.run?.error) feedback(serviceError(next.run.error.message, next.run.error.code) || ui('本轮未完成。'));else if (next.run?.status === 'cancelled') feedback(ui('已停止回答。'));
     return true;
   } catch (e) {
     await report(e);
@@ -947,7 +955,7 @@ async function poll() {
     if (state.run_id !== rid || state.revision !== rev) return;
     if (!next.run_id) {
       await refresh(next);
-      feedback(next.run?.error?.message || (next.run?.status === 'cancelled' ? '已停止回答。' : ''));
+      feedback(serviceError(next.run?.error?.message, next.run?.error?.code) || (next.run?.status === 'cancelled' ? ui('已停止回答。') : ''));
     }
   } catch (e) {
     if (state.run_id === rid && state.revision === rev) await report(e);
@@ -968,7 +976,7 @@ async function syncChangedReview(error) {
   return true;
 }
 function reviewBookmark(data, question) {
-  const control = button('加入本课复习', 'quiet bookmark-action', async () => {
+  const control = button(ui('加入本课复习'), 'quiet bookmark-action', async () => {
     if (saved) return openReview();
     control.disabled = true;
     try {
@@ -987,8 +995,8 @@ function reviewBookmark(data, question) {
   let saved = false;
   function showSaved() {
     saved = true;
-    control.replaceChildren(icon('check'), '已加入复习');
-    control.title = '打开本课复习';
+    control.replaceChildren(icon('check'), ui('已加入复习'));
+    control.title = ui('打开本课复习');
   }
   async function sync() {
     try {
@@ -1015,7 +1023,7 @@ function showReviewList(rows, mastered = false, focus = false) {
   ++reviewSerial;
   const tabs = el('div', 'review-tabs'), list = el('div', 'review-list');
   const done = rows.filter(row => row.status === 'confident').length;
-  for (const [value,label,count] of [[false,'待复习',rows.length-done],[true,'已掌握',done]]) {
+  for (const [value,label,count] of [[false,ui('待复习'),rows.length-done],[true,ui('已掌握'),done]]) {
     const tab = button(label + ' ' + count, 'review-tab', () => {
       reviewNotice();
       showReviewList(rows, value, true);
@@ -1027,17 +1035,17 @@ function showReviewList(rows, mastered = false, focus = false) {
   for (const item of items) {
     const row = button('', 'review-row', () => practiseReview(item, rows, mastered));
     const words = el('span', 'review-row-text');
-    words.append(el('strong', '', item.cue || '回忆这一页的关键内容'),
-      el('small', '', item.filename + ' · 第 ' + item.page + ' 页'));
+    words.append(el('strong', '', item.cue || ui('回忆这一页的关键内容')),
+      el('small', '', item.filename + ui(' · 第 ') + item.page + ui(' 页')));
     row.append(words, icon('right'));
     list.append(row);
   }
   if (!items.length) {
     const blank = el('div', 'review-empty'), tile = el('span', 'review-tile');
     tile.append(icon(mastered ? 'check' : 'bookmark'));
-    blank.append(tile, el('h3', '', mastered ? '还没有标记为已掌握的原页' : '还没有待复习的原页'),
-      el('p', '', mastered ? '核对原页后，可以自己标记掌握程度。' :
-        (done ? '已练过的页面可以在「已掌握」中再次打开。' : '从回答里打开一页考卷或讲义，点「加入本课复习」。')));
+    blank.append(tile, el('h3', '', mastered ? ui('还没有标记为已掌握的原页') : ui('还没有待复习的原页')),
+      el('p', '', mastered ? ui('核对原页后，可以自己标记掌握程度。') :
+        (done ? ui('已练过的页面可以在「已掌握」中再次打开。') : ui('从回答里打开一页考卷或讲义，点「加入本课复习」。'))));
     list.append(blank);
   }
   reviewBody.replaceChildren(tabs, list);
@@ -1048,14 +1056,14 @@ async function openReview() {
   const serial = ++reviewSerial;
   $('reviewCourse').textContent = $('courseName').textContent;
   reviewNotice();
-  reviewBody.replaceChildren(el('p','review-empty','正在读取复习记录…'));
+  reviewBody.replaceChildren(el('p','review-empty',ui('正在读取复习记录…')));
   if (!reviewDialog.open) reviewDialog.showModal();
   try {
     const {items} = await api('review_list');
     if (reviewHere(serial)) showReviewList(items);
   } catch (error) {
     if (reviewHere(serial) && !await syncChangedReview(error)) {
-      reviewBody.replaceChildren(button('重新读取', 'quiet', openReview));
+      reviewBody.replaceChildren(button(ui('重新读取'), 'quiet', openReview));
       reviewNotice(error.message);
     }
   }
@@ -1063,46 +1071,46 @@ async function openReview() {
 function practiseReview(item, rows, mastered) {
   const serial = ++reviewSerial;
   reviewNotice();
-  const back = button('复习列表','quiet review-back',() => {
+  const back = button(ui('复习列表'),'quiet review-back',() => {
     reviewNotice();
     showReviewList(rows, mastered, true);
   }, 'left');
   const card = el('section', 'recall-card');
-  const title = el('h3', '', item.cue || '不看原页，你能回忆出哪些要点？');
-  const file = el('p', 'review-file', item.filename + ' · 第 ' + item.page + ' 页');
-  const label = el('label', 'review-label', '我的回忆'), draft = el('textarea', 'recall-draft');
+  const title = el('h3', '', item.cue || ui('不看原页，你能回忆出哪些要点？'));
+  const file = el('p', 'review-file', item.filename + ui(' · 第 ') + item.page + ui(' 页'));
+  const label = el('label', 'review-label', ui('我的回忆')), draft = el('textarea', 'recall-draft');
   draft.rows = 3;
-  draft.placeholder = '可以写下解题思路，也可以先口头回答。';
+  draft.placeholder = ui('可以写下解题思路，也可以先口头回答。');
   label.append(draft);
-  const reveal = button('揭开原页核对','primary',async () => {
+  const reveal = button(ui('揭开原页核对'),'primary',async () => {
     reveal.disabled = true;
     try {
       const source = await api('review_page',{document_id:item.document_id,page:item.page,image:true});
       if (!reviewHere(serial)) return;
       const original = el('section','review-original');
       const head = el('div','review-source-title');
-      head.append(icon('doc'),el('strong','','原页核对'),el('span','','第 '+source.page+' 页'));
+      head.append(icon('doc'),el('strong','',ui('原页核对')),el('span','',ui('第 ')+source.page+ui(' 页')));
       original.append(head);
       if (source.text) original.append(el('div','review-source-text',source.text));
       if (source.png) {
         const details = el('details','review-facsimile'), img = el('img');
-        img.alt = source.filename + ' 第 ' + source.page + ' 页原图';
+        img.alt = source.filename + ui(' 第 ') + source.page + ui(' 页原图');
         img.src = 'data:image/png;base64,' + source.png;
-        details.append(el('summary','','查看原图'),img);
+        details.append(el('summary','',ui('查看原图')),img);
         details.open = !source.text;
         original.append(details);
       }
-      if (!source.text && !source.png) original.append(el('p','','本页暂无可显示的正文或原图。'));
-      const cueLabel = el('label','review-label','下次复习的问题');
+      if (!source.text && !source.png) original.append(el('p','',ui('本页暂无可显示的正文或原图。')));
+      const cueLabel = el('label','review-label',ui('下次复习的问题'));
       const cue = el('textarea','review-cue');
       cue.rows = 2;
       cue.maxLength = 10000;
       cue.value = item.cue || '';
-      cue.placeholder = '写一个下次能考考自己的问题';
+      cue.placeholder = ui('写一个下次能考考自己的问题');
       cueLabel.append(cue);
       const controls = el('div','review-grade');
-      const retry = button('还要练','quiet',() => rate('review'));
-      const confident = button('已掌握这页','primary',() => rate('confident'),'check');
+      const retry = button(ui('还要练'),'quiet',() => rate('review'));
+      const confident = button(ui('已掌握这页'),'primary',() => rate('confident'),'check');
       async function rate(status) {
         retry.disabled = confident.disabled = true;
         try {
@@ -1110,12 +1118,12 @@ function practiseReview(item, rows, mastered) {
             version:item.version,cue:cue.value.trim(),status});
           if (!reviewHere(serial)) return;
           showReviewList(rows.map(row => samePage(row,saved) ? saved : row),mastered,true);
-          reviewNotice(status === 'confident' ? '这页已标记为掌握。' : '已保存在待复习中。');
+          reviewNotice(status === 'confident' ? ui('这页已标记为掌握。') : ui('已保存在待复习中。'));
         } catch (error) {
           if (reviewHere(serial) && !await syncChangedReview(error)) {
             reviewNotice(error.message);
             if (error.status === 409 && !controls.querySelector('.reload-review'))
-              controls.append(button('读取最新记录','quiet reload-review',openReview));
+              controls.append(button(ui('读取最新记录'),'quiet reload-review',openReview));
           }
         } finally {
           retry.disabled = confident.disabled = false;
@@ -1157,13 +1165,13 @@ function fileRows() {
     const row = el('div', 'file-row'),
       role = el('select'),
       year = el('input');
-    role.setAttribute('aria-label', f.name + ' 类别');
+    role.setAttribute('aria-label', f.name + ui(' 类别'));
     for (const [k, v] of Object.entries({
-      lecture: '课件',
-      exam: '真题',
-      exam_solution: '答案',
-      mock_exam: '模拟卷',
-      unknown: '其他'
+      lecture: ui('课件'),
+      exam: ui('真题'),
+      exam_solution: ui('答案'),
+      mock_exam: ui('模拟卷'),
+      unknown: ui('其他')
     })) role.add(new Option(v, k));
     year.disabled = true;
     role.onchange = () => {
@@ -1171,10 +1179,10 @@ function fileRows() {
       if (year.disabled) year.value = '';
     };
     year.type = 'number';
-    year.placeholder = '年份';
+    year.placeholder = ui('年份');
     year.min = 1900;
     year.max = 2200;
-    year.setAttribute('aria-label', f.name + ' 年份（可选）');
+    year.setAttribute('aria-label', f.name + ui(' 年份（可选）'));
     row.append(el('span', '', f.name), role, year);
     area.append(row);
   }
@@ -1183,7 +1191,7 @@ function encode(file) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => resolve(r.result.split(',')[1]);
-    r.onerror = () => reject(new Error('无法读取所选文件。'));
+    r.onerror = () => reject(new Error(ui('无法读取所选文件。')));
     r.readAsDataURL(file);
   });
 }
@@ -1194,7 +1202,7 @@ async function submitImport(event) {
     rows = [...$('fileRoles').children];
   $('confirmImport').disabled = true;
   try {
-    if (files.length > 24 || files.reduce((n, f) => n + f.size, 0) > 64 * 1024 * 1024) throw new Error('每次最多 24 份资料，共 64 MiB。');
+    if (files.length > 24 || files.reduce((n, f) => n + f.size, 0) > 64 * 1024 * 1024) throw new Error(ui('每次最多 24 份资料，共 64 MiB。'));
     const data = [];
     for (const [i, f] of files.entries()) {
       const year = rows[i].querySelector('input').value;
@@ -1303,9 +1311,20 @@ reader(!slim());
 (async () => {
   try {
     await refresh(await api('state'));
+    const savedDraft = sessionStorage.getItem('studio-language-draft');
+    sessionStorage.removeItem('studio-language-draft');
+    if (savedDraft) {
+      const [key, text] = JSON.parse(savedDraft);
+      if (key === draftKey() && typeof text === 'string') {
+        $('question').value = text;
+        noteDraft();
+        resizeText();
+        controls();
+      }
+    }
     setInterval(() => api('heartbeat').catch(() => {}), 45000);
   } catch (e) {
     await report(e);
-    emptyReader('等待连接', '请从学生包里的「开始学习」打开。');
+    emptyReader(ui('等待连接'), ui('请从学生包里的「开始学习」打开。'));
   }
 })();

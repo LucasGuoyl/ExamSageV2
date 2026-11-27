@@ -1,0 +1,2 @@
+Original teaching exercise.
+Use mathematical induction to prove that for every positive integer n, S_n=1+2+...+n=n(n+1)/2. At n=1 both sides equal 1. Suppose that the formula holds for some integer k>=1.For the induction step, S_(k+1)=S_k+(k+1)=k(k+1)/2+(k+1)=(k+1)(k+2)/2. By induction the formula holds for every positive integer n. It gives 55 for n=10 and 210 for n=20. The proof assumes the number of terms is a positive integer.

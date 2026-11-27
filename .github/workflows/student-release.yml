@@ -42,9 +42,12 @@ jobs:
           release = Path("releases/windows-study-pilot")
           archive = release / "ExamSage-Study-Windows.zip"
           extracted = release / "学生版"
-          assert hashlib.sha256(archive.read_bytes()).hexdigest() == "10db564dab529d65bd1b0cddb98fbb7386a70dba73fb15bcc19e9fea986397b6"
+          assert hashlib.sha256(archive.read_bytes()).hexdigest() == "14f4d33a6dbffdb29d5037487b1a980905894d16d2ae37676dbf00650b49ee56"
           assert Path("../最新版启动入口/启动押题宝.bat").is_file()
           assert (extracted / "开始学习.bat").is_file()
+          assert Path("../Start ExamSage.bat").is_file()
+          assert (extracted / "Start ExamSage.bat").is_file()
+          assert (extracted / "STUDENT-GUIDE.txt").is_file()
           with ZipFile(archive) as shipped, ZipFile("dist/rebuilt.zip") as rebuilt:
               names = set(shipped.namelist())
               manifest = json.loads(shipped.read("kit-files.json"))
@@ -63,3 +66,4 @@ jobs:
           tests/test_student_distribution.py tests/test_cross_discipline_demo.py
           tests/test_student_study_window.py tests/test_study_host.py
           tests/test_study_reader.py tests/test_study_review.py
+          tests/test_student_languages.py tests/test_exam_outlook_chat.py tests/test_course_reader.py tests/test_study_links.py

@@ -1,20 +1,20 @@
-# 托管课程工具的 HTTP 接口
+# Serve course tools over HTTP
 
-课程宿主可以通过 `POST /mcp` 提供与项目内学生包 0.6.4 共用的 17 个只读工具，包括逐题回测、按小问浏览往卷和核对题内短引。宿主负责对话模型和学生登录。押题宝从课程快照返回证据、原图和复算结果。学生端无需提供模型 API Key。
+A course host can expose the student plugin's 17 read-only tools from the 0.6.4 pilot at `POST /mcp`. The tools retrieve evidence, original-page images and recalculations from a course snapshot. They support question-level backtesting, browsing past-paper subquestions and checking exact passages. The host supplies the conversation model and student authentication. Students do not configure a model API key in ExamSage.
 
-## 本机验证
+## Try a local client
 
-在押题宝项目已配置的 Python 环境中运行以下命令。课程编号可重复传入。省略 `--course` 时只列出当前操作系统账号自己导入的课程。
+Run the command in a configured ExamSage Python environment. Repeat `--course` to make several registered courses available. If omitted, only courses imported under the current operating-system account are listed.
 
 ```powershell
 python -m examsage serve-mcp-local --course grt --course ses
 ```
 
-将本机 MCP HTTP 客户端指向 `http://127.0.0.1:8770/mcp`。本机入口按当前操作系统账号选择资料，仅监听回环地址。在当前沙箱中已验证监听成功，测试客户端连接时 Windows 返回 10013。普通 ChatGPT 网页仍需要它能访问的 HTTPS 地址。
+Point the local HTTP MCP client at `http://127.0.0.1:8770/mcp`. This service listens on loopback and selects material for the current operating-system user. A hosted ChatGPT client would need a reachable HTTPS endpoint. In the original sandbox pilot, the listener started but a Windows client connection returned error 10013.
 
-## 学校或平台宿主
+## Configure a school or platform host
 
-项目提供 WSGI 应用工厂。下面两个域名仅用于演示配置，运行时由运营方换成实际地址。
+Mount the WSGI application in the institution's own host. Replace the example origins with the institution's public course endpoint and authorization server.
 
 ```python
 from pathlib import Path
@@ -28,30 +28,30 @@ course_application = create_course_mcp(
 )
 ```
 
-将应用交给现有 WSGI 宿主。默认公开路径为 `/mcp`。课程路由每次只接受上游认证中间件设置的 `environ["examsage.principal"]`，类型为 `examsage.plugin_tools.Principal`。上游须在请求到达课程路由之前验证面向该资源的身份与授权，由稳定的发行方和用户标识构造唯一学生身份，并从服务端课程登记中取得公共课编号。普通 HTTP 请求头和模型工具参数均不能设置该对象。浏览器跨来源访问时，通过 `allowed_origins` 配置具体站点。网关需放行这些站点的预检、公开发现和初始 401 挑战。前端可以读取挑战并在已授权的课程请求内发送 Authorization 头。
+The default public route is `/mcp`. For each request, the course route accepts an `examsage.plugin_tools.Principal` set in `environ["examsage.principal"]` by upstream authentication middleware. The middleware must validate identity and authorization for this resource before the request reaches the course route. Construct a unique student identity from a stable issuer and user identifier. Obtain authorized shared-course IDs from the server-side enrolment register. Request headers and model tool arguments cannot set the principal.
 
-宿主配置了授权服务后，匿名访问课程接口可得到 `401` 和 `WWW-Authenticate` 挑战。授权资源说明位于 `/.well-known/oauth-protected-resource/mcp`，给出课程资源与学校授权服务的地址。这个说明对接的是外部已有的认证服务。课程应用自身不会签发令牌。代理应保留或生成配置中指定的 Host，转发后的公开路径应与说明中的资源地址一致。[MCP 授权发现规范](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization)
+Use `allowed_origins` for specific browser origins. The gateway must forward their preflight requests, public discovery requests and the initial 401 challenge. An authorized frontend can read the challenge and send its Authorization header on subsequent course requests.
 
-如果 WSGI 网关把应用挂在 `/school`，它应将该前缀放在标准 `SCRIPT_NAME` 中。此时受保护的资源是 `/school/mcp`，挑战会给出该挂载下可直接访问的元数据地址。为支持按 RFC 从根路径推导地址的客户端，网关还应将 `/.well-known/oauth-protected-resource/school/mcp` 映射到同一说明处理器，保留相同的 `SCRIPT_NAME`。[RFC 9728 的发现地址规则](https://www.rfc-editor.org/rfc/rfc9728.html#section-3.1)
+When an authorization server is configured, an anonymous course request receives a 401 with a `WWW-Authenticate` challenge. The course service publishes OAuth protected-resource metadata at `/.well-known/oauth-protected-resource/mcp`. It identifies the course resource and the external authorization server responsible for issuing tokens. A reverse proxy must preserve or generate the configured Host and forward a public path consistent with the resource URL. [MCP authorization discovery](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization)
 
-私课归属取决于同一学生根目录下的宿主身份。学校账户与本机 Windows 账户使用各自的身份标识；迁移学生资料前需要真实的账号归属确认。公共课在每个请求重新检查，已经撤销的课程会从下一次列课和读页中消失。
+For a deployment under `/school`, the gateway sets the WSGI `SCRIPT_NAME` to that prefix. The protected resource becomes `/school/mcp` and the challenge advertises its metadata address. Clients deriving the metadata URL from the origin root also require `/.well-known/oauth-protected-resource/school/mcp` mapped to the same handler with the same `SCRIPT_NAME`. [RFC 9728 discovery rules](https://www.rfc-editor.org/rfc/rfc9728.html#section-3.1)
 
-学生导入时登记的课程体系和大纲版本可通过 `list_courses` 与 `get_course_profile` 查看。在项目内 HTTP 测试中，同一学生的三门同名课程分别返回高中版本、本科版本和未登记状态。另一学生的三次课程档案查询均被拒绝。进程内 HTTP 验收（本地验收记录）
+Private-course ownership depends on the host identity under a given student root. A school account and a Windows account have different identifiers. Verify actual ownership before migrating a workspace between them. Shared-course permissions are checked on every request, including requests to list courses or retrieve a page.
 
-## 客户端可检查的行为
+## Check the client protocol
 
-先进行 MCP `initialize` 协商，再发送 `notifications/initialized`，随后可以列工具、列课、读原页并追问。当前支持 `2025-11-25`，后续请求带上 `MCP-Protocol-Version`。POST 的内容类型为 `application/json`，Accept 列出 `application/json, text/event-stream`。本实现使用无会话的 JSON 响应，通知返回 202，GET 事件流返回 405。所有工具按请求重新选定学生范围。[MCP HTTP 传输规范](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
+Negotiate MCP with `initialize`, send `notifications/initialized`, then list tools, list courses and request sources. The implemented version is `2025-11-25`. Send `MCP-Protocol-Version` on subsequent requests. POST uses `application/json` with an Accept header listing `application/json, text/event-stream`. This implementation returns stateless JSON responses, 202 for notifications and 405 for a GET event stream. Each tool request reselects the authorized student scope. [MCP HTTP transport](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
 
-物理、数学、文学、历史、SES 和地球动力学的 12 次首问和追问（本地验收记录）已在最终代码复跑。最终复验（本地验收记录）记录每门课的资料快照与实际请求。真实 HTTPS 部署、学校授权流程、ChatGPT 网页连接和学生从网页调回课程原图仍需逐项联调。
+Use `list_courses` and `get_course_profile` to inspect the imported curriculum and syllabus version. In-process tests distinguished three identically named courses belonging to one student, with school-level, university-level and unspecified curricula. The same three profile lookups by another student were rejected.
 
-## 在对话中查看引用原页
+Twelve first questions and follow-ups were repeated against the local service across physics, mathematics, literature, history, sustainable electrical systems and geodynamics. The local record identifies the snapshot and request for each course. A public HTTPS deployment, institutional sign-in, a hosted ChatGPT client and returning a course image inside that client require separate end-to-end checks.
 
-学生可以追问“打开刚才引用的地球动力学第二讲第 17 页，我想检查泊松比的指数”。当宿主调用 `get_source_page` 或 `get_source_image` 时，支持 MCP Apps 的客户端可以显示来源卡。卡上标出文件名和物理页，展开“来源与核查说明”可见来源编号。若宿主允许组件调用工具，学生可以在同一页的提取文字与完整原图间切换。重新查询发现课程快照或来源已变化时，卡片会要求从对话重新打开。
+## Open the page behind a citation
 
-图片初始完整显示，点击“放大原图”后可以滚动查看局部。文学课的原始诗行与空行保留。具有后补导读但原始提取不足的页会保留原文缺口。未加载组件的客户端仍可读取工具原有的文字、引用和可用原图。
+A student might ask “Open page 17 of the second geodynamics lecture. I want to check the exponent on Poisson's ratio.” A client supporting MCP Apps can show a source card when the host calls `get_source_page` or `get_source_image`. The card gives the filename and physical page. Its source and review details include the source ID. If the host permits component tool calls, the student can switch between the extracted text and the original image. Changes in the course snapshot or source require reopening the card from the conversation.
 
-HTTP 服务通过工具的 `_meta.ui.resourceUri` 注册静态 HTML 资源 `ui://examsage/source-page-v1.html`。资源文件只包含界面。课程内容由宿主随实际工具结果传入，点“查看本页原图”会在当前学生授权下再次调用并核对来源。组件在宿主 iframe 内通过 MCP Apps 消息通信。[OpenAI 组件说明](https://developers.openai.com/plugins/build/chatgpt-ui) · [MCP Apps 规范](https://modelcontextprotocol.io/extensions/apps/overview)
+The image starts fitted to the card. Zoom in to inspect a detail. Poetry preserves line and stanza breaks, and an extraction gap stays visible even when a later study note exists. Clients without the component can consume the tool's text, references and available image directly.
 
-可以直接打开七门课的来源卡试用（本地验收记录）。该单文件包含本轮选定原页的工具回执，切换课程、看图和放大均在本地回放。实际课程服务会在请求时重新核验学生授权。
+The tool registers the static HTML resource `ui://examsage/source-page-v1.html` with `_meta.ui.resourceUri`. The resource contains the interface. The host supplies the course content through its tool result. Requesting the original image calls the tool again under the current student scope and checks the source. The component communicates with the host iframe using MCP Apps messages. [OpenAI component guide](https://developers.openai.com/plugins/build/chatgpt-ui) · [MCP Apps overview](https://modelcontextprotocol.io/extensions/apps/overview)
 
-本地真实 Chromium 已通过模拟宿主验证交互。可以查看地球动力学桌面截图（本地验收记录）、文学手机截图（本地验收记录）和学生浏览器记录（本地验收记录）。普通 ChatGPT 网页的正式账号接入与实际渲染尚待联调。
+A seven-course local replay used selected tool receipts to test course switching, opening an image and zooming. Chromium checks exercised a simulated host with geodynamics on desktop and literature at a mobile viewport. The replay and screenshots remain with the local test materials. They cover the component interaction in that test environment.

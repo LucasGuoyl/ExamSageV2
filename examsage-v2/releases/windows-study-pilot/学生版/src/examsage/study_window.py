@@ -30,12 +30,14 @@ class StudyDesk:
     def courses(self):
         return self.workspace.private_catalog()
 
-    def spring_example(self):
+    def spring_example(self, language='zh'):
         """Open the bundled two-page lecture under the current student's identity."""
         kit = Path(__file__).resolve().parents[2]
-        base = checked_child(kit, 'examples/course-packs/physics')
+        if language not in ('zh', 'en'):
+            raise ValueError('Unsupported study language.')
+        base = checked_child(kit, 'examples/course-packs-en/physics' if language == 'en' else 'examples/course-packs/physics')
         pack = json.loads(checked_child(base, 'pack.json').read_bytes())['manifest']
-        name = '物理示例 · 线性弹簧'
+        name = 'Physics example · Linear spring' if language == 'en' else '物理示例 · 线性弹簧'
         filename = 'lesson.txt'
         content = checked_child(base, filename).read_bytes()
         digest = sha256(content).hexdigest()
@@ -49,7 +51,7 @@ class StudyDesk:
                 if (len(docs) == 1 and docs[0].sha256 == digest and docs[0].kind == 'lecture'
                         and Path(docs[0].relative_path).name == filename):
                     return course['slug']
-        result = import_selection(self.workspace.imports, name, '物理', [(filename, BytesIO(content))],
+        result = import_selection(self.workspace.imports, name, 'Physics' if language == 'en' else '物理', [(filename, BytesIO(content))],
                                   materials=[{'filename': filename, 'kind': 'lecture'}], record_receipt=True)
         return 'upload-' + result['id']
 

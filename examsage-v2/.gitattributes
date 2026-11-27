@@ -2,5 +2,6 @@ src/** -text
 student_kit/** -text
 plugin/** -text
 examples/course-packs/** -text
+examples/course-packs-en/** -text
 releases/windows-study-pilot/** -text
 *.bat -text

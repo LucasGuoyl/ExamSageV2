@@ -1,26 +1,38 @@
-# 跨学科演示课程包
+# Cross-subject teaching examples
 
-这四份材料用于验证导入、引用、条件继承和证据边界，不是帝国理工或其他学校真实课程，不构成专家教学验收。
-数学、物理练习与文学短诗/解读由开发代理原创；历史采用公共领域原文节选及原创分析题。
-历史节选来源：[美国国家档案馆转录](https://www.archives.gov/founding-docs/declaration-transcript)，核对日期 2026-11-16。
-TXT 中分页符 `\f` 定义本地页码，不能冒充原始书籍或档案页码。所有整理记录导入后保持 candidate。
-每个 pack.json 都包含具体来源哈希、学习目标和记录关系，可作为新课程包的格式示例。
+ExamSage includes four small course packs for practising retrieval, citation, inherited question conditions and evidence checking. Choose the [English materials](../course-packs-en/) or the [original Chinese materials](./). The language editions share course and record IDs so that the same exercises can be followed in either language. Import one edition into each output library.
 
-在 `examsage-v2` 目录使用现有 Python 批量导入（目标目录必须不存在）：
+| Subject | What to try | What to check |
+| --- | --- | --- |
+| Physics | Find a spring's extension, then change only the applied load. | Page 1 gives the conditions and inputs. Page 2 contains the derivation and units. |
+| Mathematics | Prove the finite sum formula by induction and evaluate it at a particular positive integer. | Find the base case and hypothesis before citing the induction step. |
+| Literature | Compare two readings of the four-line poem *The Window*. | Cite line numbers and consider counterevidence for each reading. The English edition identifies the poem as a translation. |
+| History | Explain the equality claim in an excerpt from the US Declaration of Independence. | Separate what the document says from what other evidence would be needed to establish social practice. |
 
-```powershell
-$env:PYTHONPATH = 'src'
-& '..\.worktrees\agent-kernel\.venv\Scripts\python.exe' -m examsage import-courses --source-root examples/course-packs --pack physics/pack.json --pack mathematics/pack.json --pack literature/pack.json --pack history/pack.json --output data/my-course-library
-```
+The project created the physics and mathematics exercises, the original teaching poem and its discussion. The history pack combines a public-domain excerpt with an original analysis exercise. The English edition reproduces the same archival excerpt. These are teaching examples with candidate academic records. They carry no institutional accreditation or independent expert certification. The source transcription was checked on 16 November 2026. [US National Archives transcription](https://www.archives.gov/founding-docs/declaration-transcript)
 
-`--pack` 可重复；每个路径相对显式选择的 `--source-root`，资料文件相对各自的 `pack.json` 所在目录。支持现有TXT/MD（分页符定义页码）、PDF和PPTX提取。生成 `library.json`、每科独立快照、汇总 `review.json` 和 `course-reader.html`。双击阅读器可离线浏览文字、父题条件、参考答案与审核状态；它不调用模型、不显示完整PPTX原图，也不写回审核意见。
+A form feed (`\f`) starts a new local page in each text file. These numbers identify locations in the teaching pack. Each `pack.json` specifies source hashes, learning outcomes and relationships between records. Use it as a template for an independently authored course.
 
-整批构建和阅读器生成成功才发布新目录；任何包哈希/格式/页数错误都使整批失败，不覆盖已有库。提取失败页、隐藏页、低文本页和未配对题目会列入审核，不会因此自动成为已审核资料。
+## Import an edition
 
-新库可直接由现有MCP服务读取，显式指定课程白名单，例如：
+From the `examsage-v2` directory, activate the development environment described in the [developer guide](../../README.md). Choose a fresh output path.
 
 ```powershell
-& '..\.worktrees\agent-kernel\.venv\Scripts\python.exe' -m examsage.mcp_server --library data/my-course-library --courses demo-physics,demo-mathematics,demo-literature,demo-history
+python -m examsage import-courses --source-root examples/course-packs-en --pack physics/pack.json --pack mathematics/pack.json --pack literature/pack.json --pack history/pack.json --output data/my-course-library
 ```
 
-这是供宿主配置使用的stdio服务入口，不会自动加入已安装插件。当前固定本机拥有者范围，不提供云端学生登录；实际插件更新和远程身份仍单独验收。整条导入流程不需要API Key，也不使用模型额度。
+For the original edition, set `--source-root examples/course-packs`. Each repeatable `--pack` path is relative to the selected source root. Files named inside a pack are relative to that pack's directory. The importer supports TXT and Markdown with form-feed page breaks, PDF and PPTX.
+
+The importer creates `library.json`, a separate snapshot per course, a combined `review.json` and an offline `course-reader.html`. Open the reader to check text, parent conditions, reference answers and review status. Full-slide images and persistent review edits require other tools. The reader and importer operate without model calls.
+
+Publication of the new library waits for all packs and the reader to build. A hash, format or page-count mismatch fails the batch and leaves existing libraries intact. Hidden, unreadable or low-text pages and unpaired questions remain flagged for review.
+
+## Serve an imported library
+
+To give a local MCP host read-only access to the four selected courses, start the stdio server with an explicit course list.
+
+```powershell
+python -m examsage.mcp_server --library data/my-course-library --courses demo-physics,demo-mathematics,demo-literature,demo-history
+```
+
+The host must be configured to use that server. Local ownership determines the available scope. Desktop plugin registration and authentication for a remote host have their own setup and acceptance checks.

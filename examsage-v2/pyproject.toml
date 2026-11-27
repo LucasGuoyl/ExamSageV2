@@ -19,7 +19,7 @@ examsage = "examsage.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-examsage = ["paper_topics.json", "web/*.html", "web/*.js", "web/*.css", "web/vendor/katex/*", "web/vendor/katex/contrib/*", "web/vendor/katex/fonts/*"]
+examsage = ["paper_topics.json", "web/*.html", "web/*.js", "web/*.css", "web/studio/*.html", "web/studio/*.js", "web/studio/*.css", "web/vendor/katex/*", "web/vendor/katex/contrib/*", "web/vendor/katex/fonts/*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

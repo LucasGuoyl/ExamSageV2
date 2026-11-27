@@ -22,7 +22,7 @@ def build(output):
     for name in ('plugin/skills/course-study/SKILL.md','src/examsage/web/course-reader.html'):
         files[name] = (ROOT/name).read_bytes()
     web = ROOT/'src/examsage/web'
-    assets = [web/'studio'/name for name in ('index.html','studio.css','studio.js')]
+    assets = [web/'studio'/name for name in ('index.html','studio.css','studio.js','studio-locale.js')]
     katex = web/'vendor/katex'
     assets.extend(katex/name for name in ('katex.min.css','katex.min.js','contrib/auto-render.min.js','LICENSE','PROVENANCE.json'))
     assets.extend(sorted((katex/'fonts').glob('KaTeX_*.woff2')))
@@ -33,12 +33,16 @@ def build(output):
         docs = ['pack.json','lesson.txt']
         if subject == 'history':
             docs.append('declaration-excerpt.txt')
-        for doc in docs:
-            name = f'examples/course-packs/{subject}/{doc}'
-            files[name] = (ROOT/name).read_bytes()
-    for name in ('kit.py','学生使用说明.txt'):
+        for collection in ('course-packs', 'course-packs-en'):
+            for doc in docs:
+                name = f'examples/{collection}/{subject}/{doc}'
+                files[name] = (ROOT/name).read_bytes()
+    for name in ('kit.py','学生使用说明.txt','STUDENT-GUIDE.txt'):
         files[name] = (ROOT/'student_kit'/name).read_bytes()
-    for name, action in [('开始学习.bat','study'),('1-登记学生插件.bat','register'),('2-导入自己的课件.bat','picker')]:
+    for name, action in [('开始学习.bat','study'),('1-登记学生插件.bat','register'),('2-导入自己的课件.bat','picker'),
+                         ('Start ExamSage.bat','study --language en'),
+                         ('Register Student Plugins.bat','register --language en'),
+                         ('Import Course Files.bat','picker --language en')]:
         # Only fixed commands run on double-click. Student paths come from the file picker.
         lines = ['@echo off','setlocal DisableDelayedExpansion',
                  'set "runtime=%USERPROFILE%\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe"',

@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>押题宝 · 学习空间</title><link rel="icon" href="data:,"><link rel="stylesheet" href="/vendor/katex/katex.min.css"><link rel="stylesheet" href="/studio.css">
-<script defer src="/vendor/katex/katex.min.js"></script><script defer src="/vendor/katex/contrib/auto-render.min.js"></script><script defer src="/studio.js"></script></head>
+<script defer src="/vendor/katex/katex.min.js"></script><script defer src="/vendor/katex/contrib/auto-render.min.js"></script><script defer src="/studio-locale.js"></script><script defer src="/studio.js"></script></head>
 <body><div id="app">
 <aside class="sidebar" aria-label="学习导航" id="sidebar">
 <div class="brand"><span class="brand-icon" aria-hidden="true"><i></i><i></i><i></i></span><span>押题宝<small>ExamSage</small></span><button class="icon mobile-close" data-icon="close" id="closeNav" aria-label="关闭导航"></button></div>
@@ -10,7 +10,7 @@
 <button class="nav-action" id="addCourse"><span data-icon="upload"></span>导入课件</button><button class="nav-action" id="sample"><span data-icon="book"></span>打开弹簧示例</button></div>
 <button class="nav-action review-nav" id="openReview" disabled><span data-icon="bookmark"></span>本课复习</button>
 <div class="history"><h2>对话记录</h2><nav id="sessions" aria-label="对话记录"></nav></div>
-<div class="profile"><span class="local-icon" data-icon="desktop"></span><div>本机学习空间<small>私人课程与对话</small></div></div>
+<div class="profile"><span class="local-icon" data-icon="desktop"></span><div>本机学习空间<small>私人课程与对话</small></div><select id="language" aria-label="语言"><option value="en" lang="en">English</option><option value="zh" lang="zh-CN">中文</option></select></div>
 </aside><button id="navShade" class="shade" aria-label="收起导航" hidden></button>
 <main><header class="top"><div class="crumb"><button class="icon menu" id="menu" data-icon="menu" aria-label="打开学习导航"></button><span data-icon="stack"></span><span>学习空间</span><b>/</b><strong id="courseName">课程问答</strong></div><button id="toggleReader" class="tool" aria-expanded="true"><span data-icon="panel"></span>出处对照</button></header>
 <div class="conversation" id="conversation" tabindex="-1"><div class="flow" id="flow"></div></div>

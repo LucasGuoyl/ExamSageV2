@@ -143,6 +143,8 @@ def test_existing_older_ui_is_reported_without_opening_it(tmp_path, monkeypatch)
     opened=[]
     with pytest.raises(StudentServerBusy,match='旧版'):
         study_host._reopen(marker,opened.append)
+    with pytest.raises(StudentServerBusy,match='Start ExamSage.bat'):
+        study_host._reopen(marker,opened.append,language='en')
     assert not opened and marker.exists()
 
 def test_table_preview_matches_values_in_one_unambiguous_literal_row():

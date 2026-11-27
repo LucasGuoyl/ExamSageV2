@@ -1,0 +1,2 @@
+Original teaching exercise.
+An ideal Hooke spring is in static equilibrium within its linear elastic range. Its stiffness is k=200 N/m and the applied tensile force is F=10 N. Find the extension x under this steady load.The restoring force is Fs=-kx. At equilibrium F+Fs=0, so x=F/k=0.05 m. With the same assumptions and F=20 N, x=0.10 m. The units are N/(N/m)=m. A dynamic load or an extension outside the linear range requires a different analysis.

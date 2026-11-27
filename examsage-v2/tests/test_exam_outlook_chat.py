@@ -67,6 +67,22 @@ def test_outlook_has_dedicated_evidence_and_ignores_unadopted_result(course):
     assert 'S1' not in json.dumps(locator) and 'LATER_SOLUTION' not in json.dumps(locator)
 
 
+@pytest.mark.parametrize('question', [
+    'Which topics should I prioritize for the 2025 exam in 数学?',
+    'Likely exam topics for 数学 in 2025?',
+    'Will 数学 include induction in the 2025 exam?',
+])
+def test_english_outlook_keeps_original_topic_and_source_reference(course, question):
+    tools = CourseTools(*course, course_id='math', outlook_args=ARGS)
+    report = tools.call('get_exam_outlook', ARGS)['exam_outlook']
+    eid = report['ranking'][0]['evidence_id']
+    result = validate_answer(answer([eid]), tools, question=question)
+    assert '2025' in result['text'] and 'revision' in result['text'].lower()
+    assert report['ranking'][0]['topic'] in result['text']
+    assert result['paragraphs'][0]['citations'] == [eid]
+    assert result['limitations'] == ['Source availability dates are unknown.']
+
+
 def test_insufficient_cannot_become_an_outlook_for_another_year_or_mode(course):
     args = {**ARGS,'history_mode':'strict'}
     tools = CourseTools(*course,course_id='math',outlook_args=args)

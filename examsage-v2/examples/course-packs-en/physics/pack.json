@@ -1,0 +1,148 @@
+{
+  "workspace": "cross-discipline-demo",
+  "profile": {
+    "course_id": "demo-physics",
+    "curriculum_system": "demonstration",
+    "institution": null,
+    "stage": "Teaching demonstration, unaccredited",
+    "language": "en",
+    "syllabus_version": "2026-demo-v1",
+    "disciplines": [
+      "physics"
+    ],
+    "material_status": "demonstration",
+    "outcomes": [
+      {
+        "id": "reason-with-sources",
+        "description": "Distinguish source wording, assumptions, reasoning and gaps in the evidence.",
+        "refs": [
+          {
+            "document_id": "lesson",
+            "page": 1
+          },
+          {
+            "document_id": "lesson",
+            "page": 2
+          }
+        ],
+        "record_ids": [
+          "focus"
+        ]
+      }
+    ]
+  },
+  "manifest": {
+    "course_key": "demo-physics",
+    "course_name": "Demo / Physics: The linear spring",
+    "documents": [
+      {
+        "id": "lesson",
+        "relative_path": "lesson.txt",
+        "sha256": "7c6a27bfcd7642d4aa1772307faec197632e0b3777023f170bb4d161346a5bca",
+        "kind": "lecture",
+        "pages": 2
+      }
+    ]
+  },
+  "records": [
+    {
+      "id": "focus",
+      "kind": "proof",
+      "title": "Hooke spring in static equilibrium",
+      "text": "Combining the restoring force Fs=-kx with the equilibrium condition F+Fs=0 gives x=F/k.",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 1
+        },
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "details": {
+        "academic": {
+          "nature": "derivation",
+          "assumptions": [
+            "Ideal linear spring in static equilibrium, within its elastic limit"
+          ],
+          "steps": [
+            {
+              "text": "The restoring force is Fs=-kx.",
+              "refs": [
+                {
+                  "document_id": "lesson",
+                  "page": 2
+                }
+              ]
+            },
+            {
+              "text": "At equilibrium F-kx=0, giving x=F/k.",
+              "refs": [
+                {
+                  "document_id": "lesson",
+                  "page": 2
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "q",
+      "kind": "question",
+      "title": "Practice problem",
+      "text": "Original teaching exercise.\nAn ideal Hooke spring is in static equilibrium within its linear elastic range. Its stiffness is k=200 N/m and the applied tensile force is F=10 N. Find the extension x under this steady load.",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 1
+        }
+      ]
+    },
+    {
+      "id": "q-a",
+      "kind": "question",
+      "title": "Part a",
+      "text": "Find the extension x. State its units and the conditions under which your calculation applies.",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "parent_id": "q"
+    },
+    {
+      "id": "a-a",
+      "kind": "answer",
+      "title": "Worked answer for the original practice exercise",
+      "text": "x=10/200=0.05 m for the specified static load and linear elastic response.",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "limitations": [
+        "This worked example awaits independent expert review."
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "id": "pair-a",
+      "kind": "has_answer",
+      "source": "q-a",
+      "target": "a-a",
+      "refs": [
+        {
+          "document_id": "lesson",
+          "page": 2
+        }
+      ],
+      "origin": "explicit"
+    }
+  ]
+}

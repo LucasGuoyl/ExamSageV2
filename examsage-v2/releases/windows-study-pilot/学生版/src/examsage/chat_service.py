@@ -99,21 +99,39 @@ def selected_source_reply(result):
     return {'paragraphs': paragraphs}
 
 
-def outlook_request(question, previous=None):
-    """Resolve actionable exam-outlook requests before exposing any course tool or prior text."""
-    text = question.strip().casefold().replace('押题宝','')
-    explicit = text.startswith(OUTLOOK_REQUEST_PREFIX)
+def _has_outlook_intent(text):
     subject = re.search(r'考试|考点|试卷|真题|复习|会考|\b(?:exams?|papers?|tests?|finals?|revision)\b', text)
     prediction = re.search(
         r'预测|押题|必考|会考|重点复习|复习重点|(?:可能|大概率).{0,20}(?:会考|出现|考查|考察|考什么|考哪些)'
         r'|\b(?:predict\w*|forecast\w*|prioriti[sz]e)\b|\blikely\s+(?:exam|topics?|questions?)\b'
         r'|考试范围.{0,15}(?:会|可能|预计)|(?:考试|试卷).{0,10}会.{0,12}(?:覆盖|考查|涉及|包括)'
         r'|\b(?:likely|might|will)\b.{0,55}\b(?:appear|cover|include|test|be (?:on|tested|covered))\b', text)
+    return bool(prediction and (subject or '押题' in text))
+
+
+def _english_outlook_question(question):
+    text = question.strip().casefold()
+    if text.startswith(OUTLOOK_REQUEST_PREFIX):
+        return False
+    english_clause = re.sub(r'[\u3400-\u9fff]+', ' ', text)
+    chinese_clause = re.sub(r'[a-z]+', ' ', text)
+    english_intent, chinese_intent = _has_outlook_intent(english_clause), _has_outlook_intent(chinese_clause)
+    if english_intent != chinese_intent:
+        return english_intent
+    # For short follow-ups or a bilingual request, follow the language of its opening words.
+    opening = re.search(r'[a-z\u3400-\u9fff]', text)
+    return bool(opening and opening[0].isascii())
+
+
+def outlook_request(question, previous=None):
+    """Resolve actionable exam-outlook requests before exposing any course tool or prior text."""
+    text = question.strip().casefold().replace('押题宝','')
+    explicit = text.startswith(OUTLOOK_REQUEST_PREFIX)
     if not explicit and re.search(r'(?:不要|不用|停止|别).{0,4}(?:预测|押题)|(?:don.t|do not|stop) (?:predict|forecast)',text):
         return None
     followup = previous and re.fullmatch(
         r'(?:那|换成|改成|再看|改为|换到|what about|how about)\s*(?:\d{4}\s*年?|明年|next year)\s*(?:呢)?[？?。.!！ ]*',text)
-    if not (explicit or (prediction and (subject or '押题' in text)) or followup):
+    if not (explicit or _has_outlook_intent(text) or followup):
         return None
     years = {int(y) for y in re.findall(r'(?<!\d)(\d{4})(?!\d)',text)}
     if re.search(r'明年|下(?:一)?年|\bnext year',text):
@@ -510,7 +528,7 @@ def validate_answer(raw, tools, *, question=''):
     if request is not None and request != tools.outlook_args:
         raise RuntimeFailure('outlook_requires_isolation','本次结果与所问考年或资料范围不一致。请在“历年试卷主题”重新分析。')
     if tools.outlook_args:
-        return _outlook_answer(tools)
+        return _outlook_answer(tools, english=_english_outlook_question(question))
     try:
         answer = ModelAnswer.model_validate(raw)
     except ValidationError:
@@ -544,7 +562,31 @@ def validate_answer(raw, tools, *, question=''):
             'trace': tools.trace, 'source_check': 'locations_validated_not_expert_reviewed'}
 
 
-def _outlook_answer(tools):
+def _english_outlook_note(note):
+    notes = {
+        '可得日期未知。': 'Source availability dates are unknown.',
+        '已核对短引的标签附有编制日期；其余题头索引的编制日期未经核验。': 'Labels checked against source excerpts have a compilation date. Dates for other question-heading indexes are unverified.',
+        '主题标签来自当前快照，含候选映射；标签编制日期未经核验。': 'Topic labels come from the current snapshot and include tentative matches. Their compilation dates are unverified.',
+        '按出现考年数、父题数、最近考年、标签字面顺序排列。每个主题最多示例三个年份，出现次数不能换算为出题概率。': 'Ranking uses the number of exam years, parent questions, most recent year and alphabetical label. Up to three years are shown per topic. Frequency does not establish its probability of appearing.',
+        '没有明确考年、卷名学年与登记年份冲突或文件版本日期晚于所选上限的试卷不计入统计。': 'Papers with missing or conflicting exam years, or with a version date after the cutoff, are excluded.',
+        '复习标签来自核对过的卷面标题或题干短引，可有多个。主题归纳待教师审核；同一主题在不同年份可能考查不同技能。': 'A question may have several labels drawn from verified headings or short excerpts. Topic groupings await instructor review. A topic may test different skills across years.',
+        '仅统计可定位的卷面题头；未识别的题型、无主题标题或存在冲突的条目不参与排名。整卷大题总数与题答对应待审核。': 'Only traceable question headings count. Unrecognised formats, missing headings and conflicting entries are excluded. Question totals and answer matches await review.',
+        '仅纳入截止日前有可得日期的来源。试卷封面日期不能证明当时可取得。': 'Only sources documented as available by the cutoff are included. A cover date alone cannot establish availability.',
+        '按卷面考年回顾，部分年份仅有文件名学年标签。没有据此验证当年考前可得性。': 'The analysis uses paper years, some inferred from academic-year filenames. Availability before the exam is unverified.',
+        '可用考年不足三个，排序对单份卷的内容敏感。': 'Fewer than three exam years are available, so one paper can strongly affect the ranking.',
+        '部分试卷或大题缺少可核对的题目或主题，频次仅反映已定位的部分。': 'Some papers or questions lack verifiable questions or topics. Counts cover only the material located.',
+        '当前范围内没有同时具备可定位父题和主题标签的往卷证据。': 'No past-paper evidence in this scope has both a traceable parent question and a topic label.',
+    }
+    numbered = re.fullmatch(r'另有 (\d+) 份卷可定位大题编号，但没有可用的主题题头。已计入大题覆盖。', note)
+    if numbered:
+        return f'{numbered[1]} additional papers have question numbers but no usable topic headings. They count towards question coverage.'
+    gap = re.fullmatch(r'最近一次纳入的考年为 (\d+)，目标年之前有空档。缺卷年份不计作某主题没有考过。', note)
+    if gap:
+        return f'The latest included exam year is {gap[1]}. Missing years provide no evidence about which topics appeared.'
+    return notes.get(note, note)
+
+
+def _outlook_answer(tools, *, english=False):
     report = tools.outlook
     if report is None:
         raise RuntimeFailure('exam_outlook_missing','本轮没有取得所选范围内的往卷分析，请重试。')
@@ -552,7 +594,17 @@ def _outlook_answer(tools):
     mode = '限考前可得资料' if report['history_mode'] == 'strict' else '按卷面考年回顾'
     rows = report['ranking']
     ids = [row['evidence_id'] for row in rows]
-    if report['status'] == 'ranked' and rows:
+    if english:
+        mode = 'sources available before the exam' if report['history_mode'] == 'strict' else 'by paper year'
+        text = f'{year} revision priorities ({mode}). '
+        if report['status'] == 'ranked' and rows:
+            text += 'Earlier papers suggest reviewing ' + ', '.join(row['topic'] for row in rows) + '. See the years, question counts and source pages for each topic.'
+            kind = 'derivation'
+        else:
+            text += 'The available past papers contain too little topic evidence to rank revision priorities.'
+            kind = 'insufficient'
+        report = {**report, 'limitations': [_english_outlook_note(note) for note in report['limitations']]}
+    elif report['status'] == 'ranked' and rows:
         titles = '、'.join(row['topic'] for row in rows)
         text = f'{year} 年复习建议（{mode}）。按较早试卷的主题记录，可优先复习{titles}。下方列出各主题出现的年份、题数与原页。'
         kind = 'derivation'

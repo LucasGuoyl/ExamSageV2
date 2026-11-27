@@ -19,13 +19,13 @@ MODULES = ['__init__.py', 'domain.py', 'storage.py', 'lexical.py', 'search.py',
            'import_receipt.py','student_workspace.py']
 
 
-def _build_student_demos(folder: Path, courses: list[str]):
+def _build_student_demos(folder: Path, courses: list[str], language='zh'):
     from .course_pack import CoursePack, import_pack
 
     catalog = {f'demo-{subject}': subject for subject in ('physics','mathematics','literature','history')}
     if len(courses) != len(set(courses)) or set(courses).difference(catalog):
         raise ValueError('Student demos must be selected from the four authored examples')
-    examples = Path(__file__).resolve().parents[2]/'examples'/'course-packs'
+    examples = Path(__file__).resolve().parents[2]/'examples'/('course-packs-en' if language == 'en' else 'course-packs')
     folder.mkdir()
     entries = []
     for course_id in courses:
@@ -41,7 +41,7 @@ def _build_student_demos(folder: Path, courses: list[str]):
 def build_package(output: Path, library: Path | None, courses: list[str], python: Path, *,
                   plugin_name: str = 'examsage-courses',
                   display_name: str = '押题宝课程学习（本机验证）', student_root: Path | None = None,
-                  recipient: bool = False):
+                  recipient: bool = False, language: str = 'zh'):
     if not isinstance(plugin_name, str) or not re.fullmatch(r'[a-z][a-z0-9-]{0,63}', plugin_name):
         raise ValueError('Plugin name must be a lowercase identifier of at most 64 characters')
     if not isinstance(display_name, str) or not display_name.strip() or len(display_name) > 120:
@@ -88,13 +88,13 @@ def build_package(output: Path, library: Path | None, courses: list[str], python
         'if "student_root" in settings:\n    args.extend(["--student-root", settings["student_root"]])\n'
         f'raise SystemExit(main(args, version={version!r}))\n', encoding='utf-8')
     if recipient and courses:
-        _build_student_demos(output/'library', courses)
+        _build_student_demos(output/'library', courses, language)
     manifest = {'$schema': 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json',
                 'name': plugin_name, 'version': version,
-                'description': '押题宝授权课程查证与学习；本机只读验证候选。',
+                'description': 'Study your courses using read-only tools that cite the original pages.',
                 'extensions': {'com.openai': {'requires_local_executor': True,
                     'interface': {'displayName': display_name,
-                                  'shortDescription': '基于课程原文查证，保留条件与来源。'}}}}
+                                  'shortDescription': 'Check course evidence, assumptions and original pages.'}}}}
     # A portable command must be a bare executable or a plugin-relative path.
     # Windows hosts may use their native command interpreter for a .cmd entry.
     # Library paths remain data in JSON, never shell expressions.
@@ -130,14 +130,14 @@ def build_package(output: Path, library: Path | None, courses: list[str], python
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
     if recipient:
-        (output/'使用说明.txt').write_text('请保留安装目录。学生私课按 Windows 用户保存；演示课随插件提供。\n', encoding='utf-8')
+        (output/'README.txt').write_text('Keep this folder in place. Personal courses belong to the current Windows user. Demo courses ship with the plugin.\n', encoding='utf-8')
     else:
         (output / 'LOCAL-ONLY.txt').write_text(
-            '本机验证候选，未安装、未发布、未通过真实宿主验收。\n'
-            '需要 Windows、本机现有 Python/Pydantic/Pillow/pypdfium2 和授权课程目录；路径已由构建器填写。\n'
-            '包中没有课件、数据库或凭据，不能直接发给其他学生当成通用安装包。\n'
-            '支持 MCP 2025-11-25 stdio 课程文字与原页图片工具；图像不是语义验收证明。\n'
-            '不支持云端身份、HTTP、模型调用或后台任务。\n', encoding='utf-8')
+            'Local verification candidate. Installation, publication and host acceptance are pending.\n'
+            'The builder records paths to this Windows installation of Python, Pydantic, Pillow, pypdfium2 and the authorised course folder.\n'
+            'For another student, use the portable student kit. This candidate omits course files, databases and credentials.\n'
+            'The MCP 2025-11-25 stdio tools serve course text and page images. Check the original before relying on a figure or formula.\n'
+            'Cloud identity, HTTP, model calls and background tasks are outside its scope.\n', encoding='utf-8')
     hash_root = source_path(output)
     hashes = {p.relative_to(hash_root).as_posix(): sha256(p.read_bytes()).hexdigest()
               for p in sorted(hash_root.rglob('*')) if p.is_file()}
